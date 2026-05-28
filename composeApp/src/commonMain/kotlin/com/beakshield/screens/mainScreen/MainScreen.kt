@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -31,6 +33,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.beakshield.dawson.Message
+import com.beakshield.websocket.UserRequestType
 import com.beakshield.mainColor
 import com.beakshield.offBlackColor
 import com.beakshield.screens.Destination
@@ -43,7 +46,11 @@ fun MainScreen(
     navToScreen: (Destination) -> Unit
 ) {
     var userInput by remember { mutableStateOf("") }
+    var ipAddress by remember { mutableStateOf("localhost")}
+    var requestResponse by remember { mutableStateOf("") }
+    val pendingInputRequests by mainScreenViewModel.pendingInputRequests.collectAsState()
     val groupedMessages by mainScreenViewModel.groupedMessages.collectAsState()
+    val state = rememberLazyListState()
 
     Box(
         modifier = Modifier
@@ -63,6 +70,7 @@ fun MainScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxSize(),
+                state = state,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(groupedMessages.entries.toList()) { entry ->
@@ -70,31 +78,109 @@ fun MainScreen(
                 }
             }
 
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(top = 30.dp, bottom = 50.dp)
             ) {
-                TextField(
-                    value = userInput,
-                    onValueChange = { userInput = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Enter prompt...") }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        if (userInput.isNotBlank()) {
-                            mainScreenViewModel.sendTextPrompt(userInput)
-                            userInput = ""
-                        }
-                    },
-                    enabled = userInput.isNotBlank()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Send")
+                    TextField(
+                        value = userInput,
+                        onValueChange = { userInput = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Enter prompt...") }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (userInput.isNotBlank()) {
+                                mainScreenViewModel.sendTextPrompt(userInput)
+                                userInput = ""
+                            }
+                        },
+                        enabled = userInput.isNotBlank()
+                    ) {
+                        Text("Send")
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextField(
+                        value = ipAddress,
+                        onValueChange = { ipAddress = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Enter ip address...") }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (ipAddress.isNotBlank()) {
+                                println("Connect clicked")
+                                mainScreenViewModel.setIPAddress(ipAddress)
+                            }
+                        },
+                        enabled = ipAddress.isNotBlank()
+                    ) {
+                        Text("Connect")
+                    }
                 }
             }
+        }
+        pendingInputRequests.firstOrNull()?.let { request ->
+            AlertDialog(
+                onDismissRequest = {},
+                title = {
+                    Text("User Input Required")
+                },
+                text = {
+                    Column {
+                        Text(request.prompt)
+
+                        if ((request.type != UserRequestType.PERMISSION) && (request.type != UserRequestType.CONFIRMATION)) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            TextField(
+                                value = requestResponse,
+                                onValueChange = { requestResponse = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text("Enter response...") }
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            mainScreenViewModel.respondToRequest(request, true, requestResponse.ifBlank { null })
+                            requestResponse = ""
+                        }
+                    ) {
+                        Text(
+                            text = if (request.type == UserRequestType.PERMISSION) "Allow" else "Submit"
+                        )
+                    }
+                },
+                dismissButton = {
+                    Button(
+                        onClick = {
+                            mainScreenViewModel.respondToRequest(request = request, approved = false)
+                            requestResponse = ""
+                        }
+                    ) {
+                        Text(
+                            text = if (request.type == UserRequestType.PERMISSION) "Deny" else "Cancel"
+                        )
+                    }
+                }
+            )
         }
     }
 }

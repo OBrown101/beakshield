@@ -9,25 +9,18 @@ import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
 
 @Serializable
-data class WSPacket(
-    val type: PacketType,
+data class MessageData(
+    val timestamp: Long,
+    val chatUUID: String?,
+    val sourceUUID: String,
+    val destinationUUID: String,
+    val dataType: DataType,
     val payload: JsonElement
 ) {
 
-    enum class PacketType {
-        PING,
-        PONG,
-        USER_DATA,
-        AGENT_DATA,
-        CHAT_DATA,
-        USER_INPUT_REQUEST_RESPONSE,
-        ERROR;
-
-        companion object {
-            fun fromTitle(title: String): PacketType? {
-                return entries.firstOrNull { it.name == title }
-            }
-        }
+    enum class DataType {
+        TEXT,
+        DATA;
     }
 
     @OptIn(InternalSerializationApi::class)

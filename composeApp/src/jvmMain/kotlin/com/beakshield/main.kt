@@ -10,7 +10,7 @@ fun main() = application {
     val windowState = rememberWindowState(
         // TODO: Remove these once adaptive setup
         width = 640.dp,
-        height = 1020.dp,
+        height = 800.dp,
         placement = WindowPlacement.Floating
     )
 

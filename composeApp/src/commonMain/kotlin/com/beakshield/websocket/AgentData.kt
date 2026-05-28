@@ -1,9 +1,10 @@
-package com.beakshield.dawson
+package com.beakshield.websocket
 
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
 
@@ -22,13 +23,14 @@ data class AgentData(
         DATA_RESPONSE,
         TOOL_CALL,
         TOOL_RESULT,
+        USER_INPUT_REQUEST,
         ERROR;
     }
 
     @OptIn(InternalSerializationApi::class)
-    fun <T : Any>payloadAs(clazz: KClass<T>): T? {
+    inline fun <reified T> payloadAs(): T? {
         return try {
-            Json.decodeFromJsonElement(clazz.serializer(), payload)
+            Json.decodeFromJsonElement<T>(payload)
         } catch (e: Exception) {
             null
         }

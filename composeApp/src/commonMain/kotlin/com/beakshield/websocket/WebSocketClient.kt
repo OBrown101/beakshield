@@ -33,9 +33,10 @@ class WebSocketClient {
     private val _connectionState = MutableStateFlow(false)
     val connectionState = _connectionState.asStateFlow()
 
-    fun connect(url: String = "ws://127.0.0.1:8080/dawson") {
+    fun connect(ipAddress: String = "127.0.0.1") {
         scope.launch {
             try {
+                val url = "ws://${ipAddress}:8080/dawson"
                 client.webSocket(url) {
                     session = this
                     _connectionState.value = true
@@ -54,6 +55,7 @@ class WebSocketClient {
                     }
                 }
             } catch (e: Exception) {
+                println("connect failed: $e")
                 _connectionState.value = false
             }
         }
