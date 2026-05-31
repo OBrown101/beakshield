@@ -16,8 +16,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddHome
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -32,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.beakshield.BeakShieldApp.Companion.dawson
 import com.beakshield.dawson.Message
 import com.beakshield.websocket.UserRequestType
 import com.beakshield.mainColor
@@ -40,6 +51,7 @@ import com.beakshield.screens.Destination
 import com.beakshield.user.User
 import com.beakshield.viewModels.MainScreenViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     mainScreenViewModel: MainScreenViewModel,
@@ -48,6 +60,10 @@ fun MainScreen(
     var userInput by remember { mutableStateOf("") }
     var ipAddress by remember { mutableStateOf("localhost")}
     var requestResponse by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    val chats by dawson.activeChats.collectAsState()
+    val userUUIDSelected by dawson.currentUserUUID.collectAsState()
+    val chatUUIDSelected by mainScreenViewModel.chatUUIDSelected.collectAsState()
     val pendingInputRequests by mainScreenViewModel.pendingInputRequests.collectAsState()
     val groupedMessages by mainScreenViewModel.groupedMessages.collectAsState()
     val state = rememberLazyListState()
@@ -66,6 +82,66 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                // Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    TextField(
+                        value = chats.firstOrNull { it.uuid == chatUUIDSelected }?.uuid
+                            ?: "Select Chat",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Chat") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded)
+                        },
+                        modifier = Modifier.menuAnchor()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        chats.forEach { chat ->
+                            DropdownMenuItem(
+                                text = { Text(chat.uuid) },
+                                onClick = {
+                                    mainScreenViewModel.selectChat(chat.uuid)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                IconButton(
+                    modifier = Modifier.background(Color.White),
+                    onClick = {
+                        mainScreenViewModel.startPrimaryChat()
+                    }
+                ) {
+                    Icon(Icons.Default.AddHome, contentDescription = "New Primary Chat")
+                }
+                IconButton(
+                    modifier = Modifier.background(Color.White),
+                    onClick = {
+                        mainScreenViewModel.startNewChat()
+                    }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "New Chat")
+                }
+            }
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -74,7 +150,10 @@ fun MainScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(groupedMessages.entries.toList()) { entry ->
-                    ChatBubble(entry.value)
+                    ChatBubble(
+                        entry.value,
+                        userUUIDSelected
+                    )
                 }
             }
 
@@ -159,7 +238,7 @@ fun MainScreen(
                 confirmButton = {
                     Button(
                         onClick = {
-                            mainScreenViewModel.respondToRequest(request, true, requestResponse.ifBlank { null })
+                            dawson.respondToRequest(request, true, requestResponse.ifBlank { null })
                             requestResponse = ""
                         }
                     ) {
@@ -171,7 +250,7 @@ fun MainScreen(
                 dismissButton = {
                     Button(
                         onClick = {
-                            mainScreenViewModel.respondToRequest(request = request, approved = false)
+                            dawson.respondToRequest(request, false, null)
                             requestResponse = ""
                         }
                     ) {
@@ -186,9 +265,12 @@ fun MainScreen(
 }
 
 @Composable
-fun ChatBubble(messages: List<Message>) {
-    val firstMsgType = messages.firstOrNull()
-    val isUser = (firstMsgType?.sourceUUID == User.DEFAULT_USER_UUID)
+fun ChatBubble(
+    messages: List<Message>,
+    userUUIDSelected: String?
+) {
+    val firstMsg = messages.firstOrNull()
+    val isUser = (firstMsg?.sourceUUID == userUUIDSelected)
 
     Box(
         modifier = Modifier
@@ -207,6 +289,16 @@ fun ChatBubble(messages: List<Message>) {
                 }
                 ChatSegment(message, isUser)
             }
+
+            if (firstMsg != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "From: ${firstMsg.sourceUUID}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isUser) Color.White else Color.Black,
+                    modifier = Modifier.align(if (isUser) Alignment.End else Alignment.Start)
+                )
+            }
         }
     }
 }
@@ -217,10 +309,12 @@ private fun ChatSegment(
     isUser: Boolean
 ) {
     val style = when (message.type) {
-        Message.MsgType.TEXT_PROMPT  -> FontWeight.Normal
+        Message.MsgType.TEXT_PROMPT -> FontWeight.Normal
         Message.MsgType.TEXT_THINKING -> FontWeight.Light
         Message.MsgType.TEXT_RESPONSE -> FontWeight.Normal
-        Message.MsgType.DATA_PROMPT   -> FontWeight.Medium
+        Message.MsgType.TOOL_CALL_NAME -> FontWeight.Bold
+        Message.MsgType.TOOL_CALL_RESULT -> FontWeight.Bold
+        Message.MsgType.DATA_PROMPT -> FontWeight.Medium
     }
 
     Text(
@@ -228,8 +322,10 @@ private fun ChatSegment(
             .background(if (isUser) mainColor else Color.LightGray)
             .padding(8.dp),
         text = when (message.type) {
-            Message.MsgType.TEXT_THINKING -> "… (thinking…)".takeIf { message.text.isBlank() } ?: message.text
-            else -> message.text
+            Message.MsgType.TEXT_THINKING -> {
+                "… (thinking…)".takeIf { message.chunks.isEmpty() } ?: message.chunks.entries.sortedBy { it.key }.joinToString("") { it.value }
+            }
+            else -> message.chunks.entries.sortedBy { it.key }.joinToString("") { it.value }
         },
         color = if (isUser) Color.White else Color.Black,
         fontWeight = style

@@ -7,8 +7,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.serializer
-import kotlin.reflect.KClass
 
 @Serializable
 data class UserData(
@@ -24,7 +22,7 @@ data class UserData(
         userUUID = message.sourceUUID,
         agentUUID = message.destinationUUID,
         dataType = DataType.fromMsgType(message.type) ?: DataType.TEXT_PROMPT,
-        payload = JsonPrimitive(message.text)
+        payload = JsonPrimitive(message.chunks[0])
     )
 
     enum class DataType {

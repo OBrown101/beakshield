@@ -72,6 +72,9 @@ kotlin {
             implementation("io.ktor:ktor-client-core:3.4.2")
             implementation("io.ktor:ktor-client-websockets:3.4.2")
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.2")
+
+            implementation("org.jetbrains.compose.material3:material3:1.9.0")
+            implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

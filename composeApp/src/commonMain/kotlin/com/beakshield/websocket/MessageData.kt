@@ -5,13 +5,12 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.serializer
-import kotlin.reflect.KClass
 
 @Serializable
 data class MessageData(
+    val runUUID: String,
     val timestamp: Long,
-    val chatUUID: String?,
+    val chatUUID: String? = null,
     val sourceUUID: String,
     val destinationUUID: String,
     val dataType: DataType,

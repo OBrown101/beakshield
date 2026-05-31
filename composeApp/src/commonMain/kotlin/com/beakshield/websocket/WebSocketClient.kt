@@ -19,7 +19,6 @@ import kotlin.reflect.KClass
 class WebSocketClient {
     private val scope = CoroutineScope(Dispatchers.Default)
     private val serializer = WSPacket.serializer()
-    private val json: Json = Json { ignoreUnknownKeys = true }
 
     private val client = HttpClient {
         install(WebSockets)
@@ -40,6 +39,7 @@ class WebSocketClient {
                 client.webSocket(url) {
                     session = this
                     _connectionState.value = true
+                    println("Connected to $url")
 
                     try {
                         for (frame in incoming) {
@@ -75,6 +75,13 @@ class WebSocketClient {
             session?.close()
             session = null
             _connectionState.value = false
+        }
+    }
+
+    companion object {
+        val json: Json = Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
         }
     }
 }

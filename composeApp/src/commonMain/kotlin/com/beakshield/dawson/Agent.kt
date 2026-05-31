@@ -4,7 +4,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.time.Clock
 
 data class Agent(
     val uuid: String,
@@ -13,9 +12,6 @@ data class Agent(
     var model: String? = null
 ) {
     private val scope = CoroutineScope(Dispatchers.Default)
-
-    private val _messages = MutableStateFlow<List<Message>>(emptyList())
-    val messages = _messages.asStateFlow()
 
    enum class AgentType {
        AGENT_DAWSON,
@@ -27,9 +23,5 @@ data class Agent(
         FLEDGLING,
         WARRIOR,
         ULTIMATE;
-    }
-
-    companion object {
-        const val PRIMARY_UUID = "PRIMARY"
     }
 }

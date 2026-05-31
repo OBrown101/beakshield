@@ -6,6 +6,6 @@ import kotlinx.serialization.Serializable
 data class UserInputResponse(
     val agentUUID: String,
     val userUUID: String,
-    val accepted: Boolean?,
+    val accepted: Boolean? = null,
     val responseText: String?
 )

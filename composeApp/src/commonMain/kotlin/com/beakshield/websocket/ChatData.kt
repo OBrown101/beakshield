@@ -10,8 +10,9 @@ import kotlin.reflect.KClass
 
 @Serializable
 data class ChatData(
+    val chatUUID: String? = null,
     val userUUID: String,
-    val agentUUID: String?,
+    val agentUUID: String? = null,
     val dataType: DataType,
     val payload: JsonElement
 ) {

@@ -1,8 +1,6 @@
 package com.beakshield.viewModels
 
 import com.beakshield.BeakShieldApp.Companion.dawson
-import com.beakshield.dawson.Agent
-import com.beakshield.dawson.Dawson
 import com.beakshield.dawson.Message
 import com.beakshield.websocket.UserInputRequest
 import com.beakshield.user.User
@@ -26,56 +24,68 @@ import kotlin.uuid.Uuid
 class MainScreenViewModel {
     private val scope = CoroutineScope(Dispatchers.Default)
 
-    private val _userSelected = MutableStateFlow<User?>(null)
-    private val _allMessages = MutableStateFlow<List<Message>>(emptyList())
-    val userSelected = _userSelected.asStateFlow()
-    val allMessages = _allMessages.asStateFlow()
+    private val _chatUUIDSelected = MutableStateFlow<String?>(null)
+    private val _chatMessages = MutableStateFlow<List<Message>>(emptyList())
+    val chatUUIDSelected = _chatUUIDSelected.asStateFlow()
+    val allMessages = _chatMessages.asStateFlow()
 
     val pendingInputRequests = dawson.pendingInputRequests
 
     val groupedMessages: StateFlow<Map<String, List<Message>>> =
         allMessages.map { allMsgs ->
-            allMsgs.groupBy { it.dataUUID }
-                .mapValues { (_, segs) ->
-                    segs.sortedBy { it.timestamp }
-                }
+            allMsgs.groupBy { it.groupingKey }.mapValues { (_, segs) ->
+                segs.sortedBy { it.updatedTimestamp }
+            }
         }.stateIn(scope, SharingStarted.Lazily, emptyMap())
 
     init {
-        _userSelected.value = User(uuid = User.DEFAULT_USER_UUID, "Owen")
-
         scope.launch {
-            dawson.activeChats.flatMapLatest { chats ->
-                if (chats.isEmpty()) {
+            _chatUUIDSelected.flatMapLatest { chatUUID ->
+                if (chatUUID == null) {
                     flowOf(emptyList())
                 } else {
-                    combine(chats.map { it.messages }) { messages ->
-                        messages.flatMap { it }
+                    dawson.activeChats.flatMapLatest { chats ->
+                        chats.find { it.uuid == chatUUID }?.messages ?: flowOf(emptyList())
                     }
                 }
-            }.collect { allMessages ->
-                _allMessages.value = allMessages
+            }.collect { messages ->
+                _chatMessages.value = messages
             }
+        }
+    }
+
+    fun selectChat(chatUUID: String?) {
+        _chatUUIDSelected.value = chatUUID
+    }
+
+    fun startPrimaryChat() {
+        dawson.startPrimaryChat()?.let {
+            selectChat(it.uuid)
+        }
+    }
+
+    fun startNewChat() {
+        dawson.startSquireChat()?.let {
+            selectChat(it.uuid)
         }
     }
 
     @OptIn(ExperimentalUuidApi::class)
     fun sendTextPrompt(text: String) {
-        val user = _userSelected.value ?: return
-        if (dawson.activeChats.value.isEmpty()) {
-            dawson.startNewChat()
-            return
-        }
-        val chatUUID = dawson.activeChats.value.firstOrNull()?.uuid ?: return   // For testing
-        val message = Message(sourceUUID = user.uuid, destinationUUID = Agent.PRIMARY_UUID, type = Message.MsgType.TEXT_PROMPT, text = text)
+        val userUUID = dawson.currentUserUUID.value ?: return
+        val chatUUID = _chatUUIDSelected.value ?: return
+        val agentUUID = dawson.getAgentUUIDForChat(chatUUID) ?: return
+        val message = Message(
+            dataUUID = Uuid.random().toString(),
+            sourceUUID = userUUID,
+            destinationUUID = agentUUID,
+            type = Message.MsgType.TEXT_PROMPT,
+            chunks = mutableMapOf(0 to text)
+        )
         dawson.sendMessage(message, chatUUID)
     }
 
     fun setIPAddress(ipAddress: String) {
         dawson.connect(ipAddress)
-    }
-
-    fun respondToRequest(request: UserInputRequest, approved: Boolean?, response: String? = null) {
-        dawson.respondToRequest(request, approved, response)
     }
 }
