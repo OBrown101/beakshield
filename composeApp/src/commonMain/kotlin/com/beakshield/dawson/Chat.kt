@@ -37,6 +37,35 @@ data class Chat(
                     updatedTimestamp = Clock.System.now().toEpochMilliseconds()
                 )
             }
+            updated.sortedBy { it.createdTimestamp }
+        }
+    }
+
+    fun markMessageComplete(dataUUID: String, lastDataIndex: Int?) {
+        _messages.update { messages ->
+            val updated = messages.toMutableList()
+            val index = updated.indexOfFirst {
+                it.dataUUID == dataUUID && it.type == Message.MsgType.TEXT_RESPONSE
+            }
+
+            if (index >= 0) {
+                val old = updated[index]
+                val numChunks = lastDataIndex ?: old.chunks.count()
+                val completedResponse = old.copy(
+                    numChunks = numChunks,
+                    updatedTimestamp = Clock.System.now().toEpochMilliseconds()
+                )
+                updated[index] = completedResponse
+
+                // Message complete, cleans up run artifacts
+                updated.removeAll {
+                    it.uuid in setOf(
+                        Message.MsgType.TEXT_THINKING.getStreamUUID(dataUUID),
+                        Message.MsgType.TOOL_CALL_NAME.getStreamUUID(dataUUID),
+                        Message.MsgType.TOOL_CALL_RESULT.getStreamUUID(dataUUID),
+                    )
+                }
+            }
             updated
         }
     }
@@ -45,7 +74,9 @@ data class Chat(
         _messages.update { current ->
             val updated = current.toMutableList()
             for (msg in messages) {
-                val idx = updated.indexOfFirst { it.dataUUID == msg.dataUUID }
+                val idx = updated.indexOfFirst {
+                    (it.uuid == msg.uuid) || (it.uuid == msg.type.getStreamUUID(msg.dataUUID))
+                }
 
                 if (idx < 0) {
                     updated.add(msg)
@@ -53,13 +84,14 @@ data class Chat(
                     val currentTimestamp = updated[idx].updatedTimestamp
                     if (currentTimestamp < msg.updatedTimestamp) {
                         updated[idx] = updated[idx].copy(
+                            uuid = uuid,
                             chunks = msg.chunks.toMutableMap(),
                             updatedTimestamp = msg.updatedTimestamp
                         )
                     }
                 }
             }
-            updated.sortedBy { it.updatedTimestamp }
+            updated.sortedBy { it.createdTimestamp }
         }
     }
 

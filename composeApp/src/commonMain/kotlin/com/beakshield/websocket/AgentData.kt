@@ -5,8 +5,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.serializer
-import kotlin.reflect.KClass
 
 @Serializable
 data class AgentData(
@@ -24,6 +22,7 @@ data class AgentData(
         TOOL_CALL,
         TOOL_RESULT,
         USER_INPUT_REQUEST,
+        DATA_LAST_INDEX,
         ERROR;
     }
 

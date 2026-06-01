@@ -150,6 +150,15 @@ fun MainScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(groupedMessages.entries.toList()) { entry ->
+                    println("GROUP: ${entry.key}")
+
+                    entry.value.forEach {
+                        println(
+                            "  source=${it.sourceUUID} " +
+                                    "type=${it.type} " +
+                                    "uuid=${it.uuid}"
+                        )
+                    }
                     ChatBubble(
                         entry.value,
                         userUUIDSelected

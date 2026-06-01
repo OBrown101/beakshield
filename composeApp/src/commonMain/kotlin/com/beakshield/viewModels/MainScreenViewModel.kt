@@ -33,8 +33,10 @@ class MainScreenViewModel {
 
     val groupedMessages: StateFlow<Map<String, List<Message>>> =
         allMessages.map { allMsgs ->
-            allMsgs.groupBy { it.groupingKey }.mapValues { (_, segs) ->
-                segs.sortedBy { it.updatedTimestamp }
+            allMsgs.groupBy { msg ->
+                if (msg.isStream) "${msg.dataUUID}_${msg.sourceUUID}" else msg.uuid
+            }.mapValues { (_, segs) ->
+                segs.sortedBy { it.createdTimestamp }
             }
         }.stateIn(scope, SharingStarted.Lazily, emptyMap())
 
@@ -75,12 +77,16 @@ class MainScreenViewModel {
         val userUUID = dawson.currentUserUUID.value ?: return
         val chatUUID = _chatUUIDSelected.value ?: return
         val agentUUID = dawson.getAgentUUIDForChat(chatUUID) ?: return
+        val dataUUID = Uuid.random().toString()
+        val msgType = Message.MsgType.TEXT_PROMPT
         val message = Message(
-            dataUUID = Uuid.random().toString(),
+            uuid = msgType.getStreamUUID(dataUUID),
+            dataUUID = dataUUID,
             sourceUUID = userUUID,
             destinationUUID = agentUUID,
-            type = Message.MsgType.TEXT_PROMPT,
-            chunks = mutableMapOf(0 to text)
+            type = msgType,
+            chunks = mutableMapOf(0 to text),
+            isStream = true
         )
         dawson.sendMessage(message, chatUUID)
     }

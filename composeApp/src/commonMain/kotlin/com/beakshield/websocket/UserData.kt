@@ -10,6 +10,7 @@ import kotlinx.serialization.json.decodeFromJsonElement
 
 @Serializable
 data class UserData(
+    val dataUUID: String,
     val chatUUID: String,
     val userUUID: String,
     val agentUUID: String,
@@ -18,6 +19,7 @@ data class UserData(
 ) {
 
     constructor(message: Message, chatUUID: String) : this (
+        dataUUID = message.dataUUID,
         chatUUID = chatUUID,
         userUUID = message.sourceUUID,
         agentUUID = message.destinationUUID,

@@ -8,6 +8,7 @@ import kotlinx.serialization.json.decodeFromJsonElement
 
 @Serializable
 data class MessageData(
+    val uuid: String,
     val runUUID: String,
     val timestamp: Long,
     val chatUUID: String? = null,

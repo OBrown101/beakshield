@@ -8,20 +8,26 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 data class Message(
+    val uuid: String,
     val dataUUID: String,
     val sourceUUID: String,
     val destinationUUID: String,
     val type: MsgType = MsgType.TEXT_PROMPT,
     var chunks: MutableMap<Int, String> = mutableMapOf(),
+    var numChunks: Int? = null,     // If null, chunk data not complete
+    val isStream: Boolean = false,
+    var createdTimestamp: Long = Clock.System.now().toEpochMilliseconds(),
     var updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
 ) {
 
     constructor(messageData: MessageData) : this (
+        uuid = messageData.uuid,
         dataUUID = messageData.runUUID,
         sourceUUID = messageData.sourceUUID,
         destinationUUID = messageData.destinationUUID,
         type = if (messageData.dataType == MessageData.DataType.DATA) DATA_PROMPT else TEXT_RESPONSE,
         chunks = mutableMapOf(0 to (messageData.payloadAs<String>() ?: "")),
+        createdTimestamp = messageData.timestamp,
         updatedTimestamp = messageData.timestamp
     )
 
@@ -32,5 +38,9 @@ data class Message(
         TOOL_CALL_NAME,
         TOOL_CALL_RESULT,
         DATA_PROMPT;
+
+        fun getStreamUUID(uuid: String): String {
+            return "${uuid}_${this.name}"
+        }
     }
 }

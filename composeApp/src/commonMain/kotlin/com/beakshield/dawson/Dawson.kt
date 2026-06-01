@@ -22,11 +22,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.serializer
 import kotlin.uuid.ExperimentalUuidApi
@@ -145,57 +142,73 @@ class Dawson {
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     fun handleAgentData(data: AgentData) {
         when (data.dataType) {
             AgentData.DataType.TEXT_THINKING -> {
                 val text = data.payloadAs<String>() ?: return
+                val msgType = Message.MsgType.TEXT_THINKING
                 val newMessage = Message(
+                    uuid = msgType.getStreamUUID(data.dataUUID),
                     dataUUID = data.dataUUID,
                     sourceUUID = data.agentUUID,
                     destinationUUID = data.userUUID,
-                    type = Message.MsgType.TEXT_THINKING,
-                    chunks = mutableMapOf(0 to text)
+                    type = msgType,
+                    chunks = mutableMapOf(0 to text),
+                    isStream = true
                 )
                 _activeChats.value.firstOrNull { it.agentUUID == data.agentUUID }?.addPendingMessage(newMessage, data.dataIndex)
             }
             AgentData.DataType.TEXT_RESPONSE -> {
                 val text = data.payloadAs<String>() ?: return
+                val msgType = Message.MsgType.TEXT_RESPONSE
                 val newMessage = Message(
+                    uuid = msgType.getStreamUUID(data.dataUUID),
                     dataUUID = data.dataUUID,
                     sourceUUID = data.agentUUID,
                     destinationUUID = data.userUUID,
-                    type = Message.MsgType.TEXT_RESPONSE,
-                    chunks = mutableMapOf(0 to text)
+                    type = msgType,
+                    chunks = mutableMapOf(0 to text),
+                    isStream = true
                 )
                 _activeChats.value.firstOrNull { it.agentUUID == data.agentUUID }?.addPendingMessage(newMessage, data.dataIndex)
             }
             AgentData.DataType.DATA_RESPONSE -> {}
             AgentData.DataType.TOOL_CALL -> {
                 val text = data.payloadAs<String>() ?: return
+                val msgType = Message.MsgType.TOOL_CALL_NAME
                 val newMessage = Message(
+                    uuid = msgType.getStreamUUID(data.dataUUID),
                     dataUUID = data.dataUUID,
                     sourceUUID = data.agentUUID,
                     destinationUUID = data.userUUID,
-                    type = Message.MsgType.TOOL_CALL_NAME,
-                    chunks = mutableMapOf(0 to "\n## TOOL CALLED: $text ##\n")
+                    type = msgType,
+                    chunks = mutableMapOf(0 to "\n## TOOL CALLED: $text ##\n"),
+                    isStream = true
                 )
                 _activeChats.value.firstOrNull { it.agentUUID == data.agentUUID }?.addPendingMessage(newMessage, data.dataIndex)
             }
             AgentData.DataType.TOOL_RESULT -> {
                 val text = data.payloadAs<String>() ?: return
-
+                val msgType = Message.MsgType.TOOL_CALL_RESULT
                 val newMessage = Message(
+                    uuid = msgType.getStreamUUID(data.dataUUID),
                     dataUUID = data.dataUUID,
                     sourceUUID = data.agentUUID,
                     destinationUUID = data.userUUID,
-                    type = Message.MsgType.TOOL_CALL_RESULT,
-                    chunks = mutableMapOf(0 to "\n## TOOL RESULT: ${text.take(20)} ##\n")
+                    type = msgType,
+                    chunks = mutableMapOf(0 to "\n## TOOL RESULT: ${text.take(20)} ##\n"),
+                    isStream = true
                 )
                 _activeChats.value.firstOrNull { it.agentUUID == data.agentUUID }?.addPendingMessage(newMessage, data.dataIndex)
             }
             AgentData.DataType.USER_INPUT_REQUEST -> {
                 val request = data.payloadAs<UserInputRequest>() ?: return
                 _pendingInputRequests.update { it + request }
+            }
+            AgentData.DataType.DATA_LAST_INDEX -> {
+                val lastIndex = data.payloadAs<Int>()
+                _activeChats.value.firstOrNull { it.agentUUID == data.agentUUID }?.markMessageComplete(data.dataUUID, lastIndex)
             }
             AgentData.DataType.ERROR -> {}
         }
