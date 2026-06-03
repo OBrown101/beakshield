@@ -14,7 +14,7 @@ data class Chat(
     val uuid: String,
     val userUUID: String,
     val agentUUID: String,
-    val updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
+    var updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
 ) {
 
     @Transient private val _messages = MutableStateFlow<List<Message>>(emptyList())

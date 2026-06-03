@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddHome
@@ -31,11 +32,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,6 +54,7 @@ import com.beakshield.offBlackColor
 import com.beakshield.screens.Destination
 import com.beakshield.user.User
 import com.beakshield.viewModels.MainScreenViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,12 +66,41 @@ fun MainScreen(
     var ipAddress by remember { mutableStateOf("localhost")}
     var requestResponse by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
+    var autoScroll by remember { mutableStateOf(true) }
     val chats by dawson.activeChats.collectAsState()
     val userUUIDSelected by dawson.currentUserUUID.collectAsState()
     val chatUUIDSelected by mainScreenViewModel.chatUUIDSelected.collectAsState()
     val pendingInputRequests by mainScreenViewModel.pendingInputRequests.collectAsState()
     val groupedMessages by mainScreenViewModel.groupedMessages.collectAsState()
     val state = rememberLazyListState()
+    val atBottom by remember {
+        derivedStateOf {
+            val layoutInfo = state.layoutInfo
+            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val lastIndex = groupedMessages.entries.size - 1
+
+            lastVisibleIndex >= lastIndex - 1
+        }
+    }
+
+    LaunchedEffect(atBottom) {
+        autoScroll = atBottom
+    }
+
+    LaunchedEffect(groupedMessages) {
+        if (autoScroll && groupedMessages.isNotEmpty()) {
+            delay(10)
+            state.scrollToItem(groupedMessages.entries.size - 1)
+        }
+    }
+
+    LaunchedEffect(chatUUIDSelected) {
+        if (groupedMessages.isNotEmpty()) {
+            autoScroll = true
+            delay(10)
+            state.scrollToItem(groupedMessages.entries.size - 1)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -292,11 +326,15 @@ fun ChatBubble(
                 .background((if (isUser) mainColor else Color.LightGray), RoundedCornerShape(12.dp))
                 .padding(8.dp)
         ) {
-            messages.forEachIndexed { idx, message ->
-                if (idx > 0) {
-                    Spacer(modifier = Modifier.height(4.dp))
+            SelectionContainer {
+                Column {
+                    messages.forEachIndexed { idx, message ->
+                        if (idx > 0) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        ChatSegment(message, isUser)
+                    }
                 }
-                ChatSegment(message, isUser)
             }
 
             if (firstMsg != null) {

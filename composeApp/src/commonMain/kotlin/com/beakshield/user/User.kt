@@ -1,12 +1,14 @@
 package com.beakshield.user
 
+import kotlinx.serialization.Serializable
 import kotlin.time.Clock
 
+@Serializable
 data class User(
     val uuid: String,
-    val name: String,
+    var name: String,
     var notes: List<String> = emptyList(),   // Short notes Dawson makes about user (e.g. hobbies, personality)
-    val updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
+    var updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
 ) {
 
     companion object {

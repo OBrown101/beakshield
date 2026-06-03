@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import beakshield.composeapp.generated.resources.Res
 import com.beakshield.screens.mainScreen.MainScreen
 import com.beakshield.viewModels.MainScreenViewModel
 
