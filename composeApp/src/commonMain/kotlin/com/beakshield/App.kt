@@ -29,7 +29,8 @@ fun App() {
     MaterialTheme {
         BaseScreen(
             baseScreenViewModel = BeakShieldApp.baseScreenViewModel,
-            mainScreenViewModel = BeakShieldApp.mainScreenViewModel
+            mainScreenViewModel = BeakShieldApp.mainScreenViewModel,
+            chatsScreenViewModel = BeakShieldApp.chatsScreenViewModel
         )
     }
 }

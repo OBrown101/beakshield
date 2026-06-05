@@ -1,8 +1,8 @@
 package com.beakshield
 
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.beakshield.dawson.Dawson
 import com.beakshield.viewModels.BaseScreenViewModel
+import com.beakshield.viewModels.ChatsScreenViewModel
 import com.beakshield.viewModels.MainScreenViewModel
 
 class BeakShieldApp {
@@ -18,6 +18,10 @@ class BeakShieldApp {
 
         val mainScreenViewModel by lazy {
             MainScreenViewModel()
+        }
+
+        val chatsScreenViewModel by lazy {
+            ChatsScreenViewModel()
         }
     }
 }

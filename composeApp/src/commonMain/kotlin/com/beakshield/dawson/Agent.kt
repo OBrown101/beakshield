@@ -1,10 +1,11 @@
 package com.beakshield.dawson
 
+import beakshield.composeapp.generated.resources.Res
+import beakshield.composeapp.generated.resources.example_avatar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.DrawableResource
 import kotlin.time.Clock
 
 @Serializable
@@ -22,6 +23,11 @@ data class Agent(
        DAWSON,
        SQUIREBOT,
        PAGE;
+
+       val image: DrawableResource
+           get() = when (this) {
+               else -> Res.drawable.example_avatar
+           }
    }
 
     enum class Mode {
@@ -29,5 +35,9 @@ data class Agent(
         FLEDGLING,
         WARRIOR,
         ULTIMATE;
+
+        val label: String
+            get() = name.lowercase()
+                .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } + " Mode"
     }
 }
