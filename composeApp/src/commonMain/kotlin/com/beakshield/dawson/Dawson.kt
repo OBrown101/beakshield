@@ -1,5 +1,6 @@
 package com.beakshield.dawson
 
+import com.beakshield.BeakShieldApp.Companion.preferences
 import com.beakshield.user.User
 import com.beakshield.websocket.AgentData
 import com.beakshield.websocket.ChatData
@@ -9,23 +10,23 @@ import com.beakshield.websocket.MessageData
 import com.beakshield.websocket.UserData
 import com.beakshield.websocket.UserInputRequest
 import com.beakshield.websocket.UserInputResponse
+import com.beakshield.websocket.WSPacket.PacketType.AGENT_DATA
+import com.beakshield.websocket.WSPacket.PacketType.CHAT_DATA
+import com.beakshield.websocket.WSPacket.PacketType.CONFIG_DATA
+import com.beakshield.websocket.WSPacket.PacketType.ERROR
+import com.beakshield.websocket.WSPacket.PacketType.PONG
+import com.beakshield.websocket.WSPacket.PacketType.USER_DATA
+import com.beakshield.websocket.WSPacket.PacketType.USER_INPUT_REQUEST_RESPONSE
 import com.beakshield.websocket.WebSocketClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import com.beakshield.websocket.WSPacket.PacketType.PONG
-import com.beakshield.websocket.WSPacket.PacketType.AGENT_DATA
-import com.beakshield.websocket.WSPacket.PacketType.CHAT_DATA
-import com.beakshield.websocket.WSPacket.PacketType.USER_DATA
-import com.beakshield.websocket.WSPacket.PacketType.CONFIG_DATA
-import com.beakshield.websocket.WSPacket.PacketType.USER_INPUT_REQUEST_RESPONSE
-import com.beakshield.websocket.WSPacket.PacketType.ERROR
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.serializer
 import kotlin.uuid.ExperimentalUuidApi
@@ -49,10 +50,14 @@ class Dawson {
     private val _activeChats = MutableStateFlow<List<Chat>>(emptyList())
     val activeChats = _activeChats.asStateFlow()
 
+    private val _activeProviders = MutableStateFlow<List<Provider>>(emptyList())
+    val activeProviders = _activeProviders.asStateFlow()
+
     private val _pendingInputRequests = MutableStateFlow<List<UserInputRequest>>(emptyList())
     val pendingInputRequests = _pendingInputRequests.asStateFlow()
 
     init {
+//        _activeProviders.update { it + Provider.defaultProvider }   // USED FOR TESTING (NOT PRODUCTION)
         _activeUsers.update { it + User.defaultUser }          // USED FOR TESTING (NOT PRODUCTION)
         _currentUserUUID.value = User.defaultUser.uuid      // USED FOR TESTING (NOT PRODUCTION)
 
@@ -92,10 +97,12 @@ class Dawson {
                 prevConn = connected
             }
         }
+
+        connect(preferences.serverAddress, preferences.serverPort)
     }
 
-    fun connect(ipAddress: String) {
-        socket.connect(ipAddress)
+    fun connect(address: String = "localhost", port: Int = 8080) {
+        socket.connect(address, port)
     }
 
     fun disconnect() {
@@ -105,16 +112,102 @@ class Dawson {
     private fun startSyncTimer() {
         syncTimerJob = CoroutineScope(Dispatchers.Default).launch {
             while (isActive) {
-                println("Requesting sync of all chats/chat-messages")
+                println("Syncing app with DAWSON Server")
+                fetchAgents()
+                fetchUsers()
+                fetchProviders()
                 fetchChats()
                 fetchChatMessages()
-                delay(10000L)
+                delay(20000L)
             }
         }
     }
 
+    fun respondToRequest(request: UserInputRequest, approved: Boolean?, response: String? = null) {
+        _pendingInputRequests.update { requests ->
+            requests.filterNot { it.agentUUID == request.agentUUID }
+        }
+
+        val payload = UserInputResponse(request.agentUUID, request.userUUID, approved, response)
+        socket.send(payload, UserInputResponse::class, USER_INPUT_REQUEST_RESPONSE)
+    }
+
+    fun getAgentUUIDForChat(chatUUID: String): String? {
+        return _activeChats.value.firstOrNull { it.uuid == chatUUID }?.agentUUID
+    }
+
+    fun startPrimaryChat(): Chat? {
+        val userUUID = _currentUserUUID.value ?: return null
+        if (_activeChats.value.any { (it.uuid == PRIMARY_CHAT_UUID) && it.userUUID == userUUID }) return null
+
+        val newChat = Chat(PRIMARY_CHAT_UUID, userUUID, PRIMARY_AGENT_UUID)
+        val chatData = ChatData(
+            chatUUID = PRIMARY_CHAT_UUID,
+            userUUID = userUUID,
+            agentUUID = PRIMARY_AGENT_UUID,
+            dataType = DataType.UPSERT_CHAT,
+            payload = WebSocketClient.json.encodeToJsonElement(serializer<Chat>(), newChat)
+        )
+        socket.send(chatData, ChatData::class, CHAT_DATA)
+        return newChat
+    }
+
     @OptIn(ExperimentalUuidApi::class)
-    fun handleAgentData(data: AgentData) {
+    fun startSquireChat(chatUUID: String = Uuid.random().toString()): Chat? {
+        val userUUID = _currentUserUUID.value ?: return null
+        val agentUUID = Uuid.random().toString()
+        if (_activeChats.value.any { it.userUUID == userUUID && it.agentUUID == agentUUID }) return null
+
+        val newChat = Chat(chatUUID, userUUID, agentUUID)
+        val chatData = ChatData(
+            chatUUID = newChat.uuid,
+            userUUID = userUUID,
+            agentUUID = agentUUID,
+            dataType = DataType.UPSERT_CHAT,
+            payload = WebSocketClient.json.encodeToJsonElement(serializer<Chat>(), newChat)
+        )
+        socket.send(chatData, ChatData::class, CHAT_DATA)
+        return newChat
+    }
+
+    fun sendMessage(message: Message, chatUUID: String, dataIndex: Int = 0) {
+        _activeChats.value.firstOrNull { it.uuid == chatUUID }?.addPendingMessage(message, dataIndex)
+        val userData = UserData(message, chatUUID)
+        socket.send(userData, UserData::class, USER_DATA)
+    }
+
+    fun updateProviderAPIKeys(apiKeys: Map<Provider.ProviderType, String>) {
+        val userUUID = _currentUserUUID.value ?: return
+        val payload = WebSocketClient.json.encodeToJsonElement(serializer<Map<Provider.ProviderType, String>>(), apiKeys)
+        val configData = ConfigData(userUUID, ConfigData.DataType.UPDATE_PROVIDER, payload)
+        socket.send(configData, ConfigData::class, CONFIG_DATA)
+    }
+
+    fun updateChat(chat: Chat) {
+        val userUUID = _currentUserUUID.value ?: return
+        val updatedChat = _activeChats.value.firstOrNull { it.uuid == chat.uuid }?.copy(
+            title = chat.title,
+            subtitle = chat.subtitle
+        ) ?: return
+        val payload = WebSocketClient.json.encodeToJsonElement(serializer<Chat>(), updatedChat)
+        val chatData = ChatData(chat.uuid, userUUID, chat.agentUUID, ChatData.DataType.UPSERT_CHAT, payload)
+        socket.send(chatData, ChatData::class, CHAT_DATA)
+    }
+
+    fun updateAgent(agent: Agent) {
+        val userUUID = _currentUserUUID.value ?: return
+        val updatedAgent = _activeAgents.value.firstOrNull { it.uuid == agent.uuid }?.copy(
+            mode = agent.mode,
+            model = agent.model,
+            directories = agent.directories
+        ) ?: return
+        val payload = WebSocketClient.json.encodeToJsonElement(serializer<Agent>(), updatedAgent)
+        val configData = ConfigData(userUUID, ConfigData.DataType.UPDATE_AGENT, payload)
+        socket.send(configData, ConfigData::class, CONFIG_DATA)
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    private fun handleAgentData(data: AgentData) {
         when (data.dataType) {
             AgentData.DataType.TEXT_THINKING -> {
                 val text = data.payloadAs<String>() ?: return
@@ -185,7 +278,7 @@ class Dawson {
         }
     }
 
-    fun handleChatData(data: ChatData) {
+    private fun handleChatData(data: ChatData) {
         println("handleChatData: ${data.dataType}")
         when (data.dataType) {
             DataType.UPSERT_CHAT -> {
@@ -202,8 +295,13 @@ class Dawson {
                     upsertChat(chat)
                 } ?: run {
                     val chats = data.payloadAs<List<Chat>>() ?: return
-                    chats.forEach {
-                        upsertChat(it)
+                    chats.forEach { chat ->
+                        upsertChat(chat)
+                    }
+                    _activeChats.value.forEach { chat ->
+                        if (chats.none { it.uuid == chat.uuid }) {
+                            deleteChat(chat.uuid)
+                        }
                     }
                 }
             }
@@ -222,16 +320,21 @@ class Dawson {
         }
     }
 
-    fun handleConfigData(data: ConfigData) {
+    private fun handleConfigData(data: ConfigData) {
         println("handleConfigData: ${data.dataType}")
         when (data.dataType) {
-            ConfigData.DataType.UPSERT_AGENT -> {
+            ConfigData.DataType.UPDATE_AGENT -> {
                 val agent = data.payloadAs<Agent>() ?: return
                 upsertAgent(agent)
             }
             ConfigData.DataType.DELETE_AGENT -> {
                 val agentUUID = data.payloadAs<String>() ?: return
                 deleteAgent(agentUUID)
+            }
+            ConfigData.DataType.SYNC_AGENTS -> {
+                val agents = data.payloadAs<List<Agent>>() ?: return
+                _activeAgents.update { agents }
+                println("Synced (${agents.count()}) agents.")
             }
             ConfigData.DataType.UPSERT_USER -> {
                 val user = data.payloadAs<User>() ?: return
@@ -241,71 +344,42 @@ class Dawson {
                 val userUUID = data.payloadAs<String>() ?: return
                 deleteUser(userUUID)
             }
+            ConfigData.DataType.SYNC_USERS -> {
+                val users = data.payloadAs<List<User>>() ?: return
+                _activeUsers.update { users }
+                println("Synced (${users.count()}) users.")
+            }
+            ConfigData.DataType.UPDATE_PROVIDER -> {
+                val provider = data.payloadAs<Provider>() ?: return
+                upsertProvider(provider)
+            }
+            ConfigData.DataType.SYNC_PROVIDERS -> {
+                val providers = data.payloadAs<List<Provider>>() ?: return
+                _activeProviders.update { providers }
+                println("Synced (${providers.count()}) providers.")
+            }
         }
-    }
-
-    fun respondToRequest(request: UserInputRequest, approved: Boolean?, response: String? = null) {
-        _pendingInputRequests.update { requests ->
-            requests.filterNot { it.agentUUID == request.agentUUID }
-        }
-
-        val payload = UserInputResponse(request.agentUUID, request.userUUID, approved, response)
-        socket.send(payload, UserInputResponse::class, USER_INPUT_REQUEST_RESPONSE)
-    }
-
-    fun getAgentUUIDForChat(chatUUID: String): String? {
-        return _activeChats.value.firstOrNull { it.uuid == chatUUID }?.agentUUID
-    }
-
-    fun startPrimaryChat(): Chat? {
-        val userUUID = _currentUserUUID.value ?: return null
-        if (_activeChats.value.any { (it.uuid == PRIMARY_CHAT_UUID) && it.userUUID == userUUID }) return null
-
-        val newChat = Chat(PRIMARY_CHAT_UUID, userUUID, PRIMARY_AGENT_UUID)
-        val chatData = ChatData(
-            chatUUID = PRIMARY_CHAT_UUID,
-            userUUID = userUUID,
-            agentUUID = PRIMARY_AGENT_UUID,
-            dataType = DataType.UPSERT_CHAT,
-            payload = WebSocketClient.json.encodeToJsonElement(serializer<Chat>(), newChat)
-        )
-        socket.send(chatData, ChatData::class, CHAT_DATA)
-        return newChat
-    }
-
-    @OptIn(ExperimentalUuidApi::class)
-    fun startSquireChat(chatUUID: String = Uuid.random().toString()): Chat? {
-        val userUUID = _currentUserUUID.value ?: return null
-        val agentUUID = Uuid.random().toString()
-        if (_activeChats.value.any { it.userUUID == userUUID && it.agentUUID == agentUUID }) return null
-
-        val newChat = Chat(chatUUID, userUUID, agentUUID)
-        val chatData = ChatData(
-            chatUUID = newChat.uuid,
-            userUUID = userUUID,
-            agentUUID = agentUUID,
-            dataType = DataType.UPSERT_CHAT,
-            payload = WebSocketClient.json.encodeToJsonElement(serializer<Chat>(), newChat)
-        )
-        socket.send(chatData, ChatData::class, CHAT_DATA)
-        return newChat
-    }
-
-    fun sendMessage(message: Message, chatUUID: String, dataIndex: Int = 0) {
-        _activeChats.value.firstOrNull { it.uuid == chatUUID }?.addPendingMessage(message, dataIndex)
-        val userData = UserData(message, chatUUID)
-        socket.send(userData, UserData::class, USER_DATA)
     }
 
     private fun upsertAgent(agent: Agent) {
-        if (_activeAgents.value.none { it.uuid == agent.uuid }) {
-            addAgent(agent)
-        } else {
-            val currentTimestamp = _activeAgents.value.firstOrNull { it.uuid == agent.uuid }?.updatedTimestamp ?: return
-            if (currentTimestamp >= agent.updatedTimestamp) return
+        _activeAgents.update { oldAgents ->
+            val index = oldAgents.indexOfFirst { it.uuid == agent.uuid }
+            if (index == -1) {
+                println("Agent (${agent.uuid}) added.")
+                (oldAgents + agent)
+            } else {
+                val currentTimestamp = oldAgents[index].updatedTimestamp
+                if (currentTimestamp >= agent.updatedTimestamp) return
 
-            _activeAgents.value.firstOrNull { it.uuid == agent.uuid }?.updatedTimestamp = agent.updatedTimestamp
-            // Any agent specific settings/data will be updated here
+                oldAgents.toMutableList().apply {
+                    this[index] = oldAgents[index].copy(
+                        mode = agent.mode,
+                        model = agent.model,
+                        directories = agent.directories,
+                        updatedTimestamp = agent.updatedTimestamp
+                    )
+                }
+            }
         }
     }
 
@@ -316,20 +390,24 @@ class Dawson {
         println("Agent (${agentUUID}) deleted.")
     }
 
-    private fun addAgent(agent: Agent) {
-        _activeAgents.update { it + agent }
-        println("Agent (${agent.uuid}) added.")
-    }
-
     private fun upsertUser(user: User) {
-        if (_activeUsers.value.none { it.uuid == user.uuid }) {
-            addUser(user)
-        } else {
-            val currentTimestamp = _activeUsers.value.firstOrNull { it.uuid == user.uuid }?.updatedTimestamp ?: return
-            if (currentTimestamp >= user.updatedTimestamp) return
+        _activeUsers.update { oldUsers ->
+            val index = oldUsers.indexOfFirst { it.uuid == user.uuid }
+            if (index == -1) {
+                println("User (${user.uuid}) added.")
+                (oldUsers + user)
+            } else {
+                val currentTimestamp = oldUsers[index].updatedTimestamp
+                if (currentTimestamp >= user.updatedTimestamp) return
 
-            _activeUsers.value.firstOrNull { it.uuid == user.uuid }?.updatedTimestamp = user.updatedTimestamp
-            // Any user specific settings/data will be updated here
+                oldUsers.toMutableList().apply {
+                    this[index] = oldUsers[index].copy(
+                        name = user.name,
+                        notes = user.notes,
+                        updatedTimestamp = user.updatedTimestamp
+                    )
+                }
+            }
         }
     }
 
@@ -343,20 +421,45 @@ class Dawson {
         println("User (${userUUID}) deleted.")
     }
 
-    private fun addUser(user: User) {
-        _activeUsers.update { it + user }
-        println("User (${user.uuid}) added.")
+    private fun upsertProvider(provider: Provider) {
+        _activeProviders.update { oldProviders ->
+            val index = oldProviders.indexOfFirst { it.type == provider.type }
+            if (index == -1) {
+                println("Provider (${provider.type}) added.")
+                (oldProviders + provider)
+            } else {
+                val currentTimestamp = oldProviders[index].updatedTimestamp
+                if (currentTimestamp >= provider.updatedTimestamp) return
+
+                oldProviders.toMutableList().apply {
+                    this[index] = oldProviders[index].copy(
+                        apiKey = provider.apiKey,
+                        models = provider.models,
+                        updatedTimestamp = provider.updatedTimestamp
+                    )
+                }
+            }
+        }
     }
 
     private fun upsertChat(chat: Chat) {
-        if (_activeChats.value.none { it.uuid == chat.uuid }) {
-            addChat(chat)
-        } else {
-            val currentTimestamp = _activeChats.value.firstOrNull { it.uuid == chat.uuid }?.updatedTimestamp ?: return
-            if (currentTimestamp >= chat.updatedTimestamp) return
+        _activeChats.update { oldChats ->
+            val index = oldChats.indexOfFirst { it.uuid == chat.uuid }
+            if (index == -1) {
+                println("Chat (${chat.uuid}) added.")
+                (oldChats + chat)
+            } else {
+                val currentTimestamp = oldChats[index].updatedTimestamp
+                if (currentTimestamp >= chat.updatedTimestamp) return
 
-            _activeChats.value.firstOrNull { it.uuid == chat.uuid }?.updatedTimestamp = chat.updatedTimestamp
-            // Any chat specific settings/data will be updated here
+                oldChats.toMutableList().apply {
+                    this[index] = oldChats[index].copy(
+                        title = chat.title,
+                        subtitle = chat.subtitle,
+                        updatedTimestamp = chat.updatedTimestamp
+                    )
+                }
+            }
         }
     }
 
@@ -371,12 +474,28 @@ class Dawson {
         println("Chat (${chatUUID}) deleted.")
     }
 
-    private fun addChat(chat: Chat) {
-        _activeChats.update { it + chat }
-        println("Chat (${chat.uuid}) added.")
+    private fun fetchAgents() {
+        val userUUID = _currentUserUUID.value ?: return
+        val payload = WebSocketClient.json.encodeToJsonElement(serializer<Agent?>(), null)
+        val configData = ConfigData(userUUID, ConfigData.DataType.SYNC_AGENTS, payload)
+        socket.send(configData, ConfigData::class, CONFIG_DATA)
     }
 
-    fun fetchChats() {
+    private fun fetchUsers() {
+        val userUUID = _currentUserUUID.value ?: return
+        val payload = WebSocketClient.json.encodeToJsonElement(serializer<User?>(), null)
+        val configData = ConfigData(userUUID, ConfigData.DataType.SYNC_USERS, payload)
+        socket.send(configData, ConfigData::class, CONFIG_DATA)
+    }
+
+    private fun fetchProviders() {
+        val userUUID = _currentUserUUID.value ?: return
+        val payload = WebSocketClient.json.encodeToJsonElement(serializer<Provider?>(), null)
+        val configData = ConfigData(userUUID, ConfigData.DataType.SYNC_PROVIDERS, payload)
+        socket.send(configData, ConfigData::class, CONFIG_DATA)
+    }
+
+    private fun fetchChats() {
         val userUUID = _currentUserUUID.value ?: return
         val chatData = ChatData(
             chatUUID = null,
@@ -388,7 +507,7 @@ class Dawson {
         socket.send(chatData, ChatData::class, CHAT_DATA)
     }
 
-    fun fetchChatMessages() {
+    private fun fetchChatMessages() {
         val userUUID = _currentUserUUID.value ?: return
         val chatData = ChatData(
             chatUUID = null,

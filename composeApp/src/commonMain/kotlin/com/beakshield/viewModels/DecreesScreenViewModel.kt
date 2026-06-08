@@ -1,6 +1,15 @@
 package com.beakshield.viewModels
 
-class DecreesScreenViewModel {
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+class DecreesScreenViewModel : VModel {
+    private val scope = CoroutineScope(Dispatchers.Default)
+
+    private val _railContent = MutableStateFlow<RailContent?>(null)
+    override val railContent = _railContent.asStateFlow()
 
     init {
     }

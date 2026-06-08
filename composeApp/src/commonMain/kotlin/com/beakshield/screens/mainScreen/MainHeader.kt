@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -67,10 +68,16 @@ fun MainHeader(
     title: String = "Good Evening, Ethan",
     statusText: String = "I've been monitoring your systems today\nEverything appears to be running smoothly."
 ) {
+    val btnTextStyle = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Normal,
+        color = Color.White,
+        textAlign = TextAlign.Left
+    )
     val btnWidth = 250
     val btnHeight = 50
     val imageHeight = 25
-    val btnTextSize = 15
     val btnSpacing = 10
     val padBetween = 12
 
@@ -141,35 +148,32 @@ fun MainHeader(
                 BasicRoundedIconBtn(
                     modifier = Modifier.width(btnWidth.dp),
                     text = "Start Chat",
-                    textSize = btnTextSize,
+                    textStyle = btnTextStyle,
                     imageVector = Icons.Rounded.ChatBubble,
                     imageHeight = imageHeight,
                     color = Color.White,
                     borderColor = dawsonDarkRed,
-                    bg = dawsonRed,
-                    bgPressed = dawsonRed.copy(0.8f)
+                    bg = dawsonRed
                 )
                 BasicRoundedIconBtn(
                     modifier = Modifier.width(btnWidth.dp),
                     text = "Talk to DAWSON",
-                    textSize = btnTextSize,
+                    textStyle = btnTextStyle,
                     imageVector = Icons.Rounded.ChatBubbleOutline,
                     imageHeight = imageHeight,
                     color = Color.White,
                     borderColor = backgroundColor,
-                    bg = cardColor,
-                    bgPressed = cardColor.copy(0.8f)
+                    bg = cardColor
                 )
                 BasicRoundedIconBtn(
                     modifier = Modifier.width(btnWidth.dp),
                     text = "Start New Task",
-                    textSize = btnTextSize,
+                    textStyle = btnTextStyle,
                     imageVector = Icons.Rounded.Add,
                     imageHeight = imageHeight,
                     color = Color.White,
                     borderColor = backgroundColor,
-                    bg = cardColor,
-                    bgPressed = cardColor.copy(0.8f)
+                    bg = cardColor
                 )
             }
         }

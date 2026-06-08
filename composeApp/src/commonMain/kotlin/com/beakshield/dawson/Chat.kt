@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Serializable
 @OptIn(ExperimentalUuidApi::class)
@@ -14,6 +15,8 @@ data class Chat(
     val uuid: String,
     val userUUID: String,
     val agentUUID: String,
+    var title: String = "",
+    var subtitle: String = "",
     var updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
 ) {
 
@@ -95,4 +98,38 @@ data class Chat(
         }
     }
 
+    object MockChat {
+        var mockChats = listOf(
+            Chat(
+                uuid = Uuid.random().toString(),
+                userUUID = Uuid.random().toString(),
+                agentUUID = Uuid.random().toString()
+            ),
+            Chat(
+                uuid = Uuid.random().toString(),
+                userUUID = Uuid.random().toString(),
+                agentUUID = Uuid.random().toString()
+            ),
+            Chat(
+                uuid = Uuid.random().toString(),
+                userUUID = Uuid.random().toString(),
+                agentUUID = Uuid.random().toString()
+            ),
+            Chat(
+                uuid = Uuid.random().toString(),
+                userUUID = Uuid.random().toString(),
+                agentUUID = Uuid.random().toString()
+            ),
+            Chat(
+                uuid = Uuid.random().toString(),
+                userUUID = Uuid.random().toString(),
+                agentUUID = Uuid.random().toString()
+            ),
+            Chat(
+                uuid = Uuid.random().toString(),
+                userUUID = Uuid.random().toString(),
+                agentUUID = Uuid.random().toString()
+            )
+        )
+    }
 }

@@ -11,8 +11,8 @@ import kotlin.time.Clock
 @Serializable
 data class Agent(
     val uuid: String,
-    val type: AgentType,
-    val mode: Mode,
+    val type: AgentType = AgentType.SQUIREBOT,
+    val mode: Mode = Mode.EGG,
     var model: String? = null,
     var directories: List<String> = emptyList(),
     var updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()

@@ -1,4 +1,4 @@
-import org.gradle.kotlin.dsl.implementation
+
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -66,6 +66,13 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.compose.components.resources)
 
+            implementation("com.russhwolf:multiplatform-settings:1.3.0")
+            implementation("com.russhwolf:multiplatform-settings-coroutines:1.3.0")
+            implementation("com.russhwolf:multiplatform-settings-no-arg:1.3.0")
+
+            implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.41.0")
+            implementation("org.jetbrains.compose.material:material-icons-extended")
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.2")
 
             implementation("io.ktor:ktor-client-cio:3.4.2")

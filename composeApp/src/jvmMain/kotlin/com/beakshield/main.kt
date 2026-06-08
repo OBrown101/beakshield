@@ -1,7 +1,5 @@
 package com.beakshield
 
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
@@ -21,7 +19,7 @@ fun main() = application {
 
         state = windowState
     ) {
-        window.minimumSize = Dimension(1000, 825)
+        window.minimumSize = Dimension(1000, 950)
 
         App()
     }

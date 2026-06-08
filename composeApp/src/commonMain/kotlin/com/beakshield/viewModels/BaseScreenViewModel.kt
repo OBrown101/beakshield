@@ -1,11 +1,15 @@
 package com.beakshield.viewModels
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
+import com.beakshield.screens.Destination
 
 class BaseScreenViewModel {
 
+    var navToScreenCallback: (Destination) -> Unit = {}
+
     init {
+    }
+
+    fun navToScreen(destination: Destination) {
+        navToScreenCallback(destination)
     }
 }

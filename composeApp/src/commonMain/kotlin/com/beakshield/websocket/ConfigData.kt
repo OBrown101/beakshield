@@ -13,10 +13,14 @@ data class ConfigData(
     val payload: JsonElement
 ) {
     enum class DataType {
-        UPSERT_AGENT,
+        UPDATE_AGENT,
         DELETE_AGENT,
+        SYNC_AGENTS,
         UPSERT_USER,
-        DELETE_USER;
+        DELETE_USER,
+        SYNC_USERS,
+        UPDATE_PROVIDER,
+        SYNC_PROVIDERS;
     }
 
     @OptIn(InternalSerializationApi::class)

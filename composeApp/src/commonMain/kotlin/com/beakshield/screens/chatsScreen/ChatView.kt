@@ -1,4 +1,4 @@
-package com.beakshield.screens.ChatsScreen
+package com.beakshield.screens.chatsScreen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -29,21 +30,29 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,16 +63,23 @@ import com.beakshield.borderColor
 import com.beakshield.cardColor
 import com.beakshield.dangerColor
 import com.beakshield.dawson.Message
+import com.beakshield.dawson.Message.MsgType.DATA_PROMPT
 import com.beakshield.dawson.Message.MsgType.TEXT_PROMPT
 import com.beakshield.dawson.Message.MsgType.TEXT_RESPONSE
 import com.beakshield.dawson.Message.MsgType.TEXT_THINKING
 import com.beakshield.dawson.Message.MsgType.TOOL_CALL_NAME
 import com.beakshield.dawson.Message.MsgType.TOOL_CALL_RESULT
 import com.beakshield.dawsonGold
+import com.beakshield.dawsonNavy
 import com.beakshield.dawsonRed
+import com.beakshield.elevatedSurfaceColor
 import com.beakshield.primaryColor
 import com.beakshield.textPrimaryColor
 import com.beakshield.textSecondaryColor
+import com.mikepenz.markdown.compose.Markdown
+import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.m3.markdownTypography
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
 
@@ -78,6 +94,29 @@ fun ChatView(
     onMicClick: () -> Unit = {}
 ) {
     var userInput by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
+    var autoScrollEnabled by remember { mutableStateOf(true) }
+
+    val contentVersion = groupedMessages.values.sumOf { messages ->
+        messages.sumOf { message ->
+            message.chunks.values.sumOf { it.length }
+        }
+    }
+
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (!listState.isScrollInProgress) return@LaunchedEffect
+
+        autoScrollEnabled =
+            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+                ?.let { it >= listState.layoutInfo.totalItemsCount - 1 }
+                ?: true
+    }
+
+    LaunchedEffect(contentVersion, groupedMessages.size) {
+        if (autoScrollEnabled && groupedMessages.isNotEmpty()) {
+            listState.animateScrollToItem(groupedMessages.size - 1)
+        }
+    }
 
     Column(
         modifier = modifier
@@ -89,6 +128,7 @@ fun ChatView(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
+            state = listState,
             verticalArrangement = Arrangement.spacedBy(26.dp),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
@@ -212,7 +252,6 @@ private fun ChatBubble(
                         if (index > 0) {
                             Spacer(Modifier.height(8.dp))
                         }
-
                         MessageSegment(
                             message = message
                         )
@@ -229,7 +268,7 @@ private fun ChatBubble(
                 Text(
                     text = messages.maxOfOrNull { it.createdTimestamp }?.toString() ?: "",
                     color = textSecondaryColor,
-                    fontSize = 15.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
 
@@ -248,10 +287,15 @@ private fun ChatBubble(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun MessageSegment(
     message: Message
 ) {
+    val clipboardManager = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
+    val fontSize = 14
+    val lineHeight = 17
     val text = when (message.type) {
         TEXT_THINKING -> {
             "… (thinking…)".takeIf { message.chunks.isEmpty() } ?: message.chunks.entries.sortedBy { it.key }.joinToString("") { it.value }
@@ -260,11 +304,11 @@ private fun MessageSegment(
     }
 
     val fontWeight = when (message.type) {
-        TEXT_PROMPT -> FontWeight.Medium
-        TEXT_THINKING -> FontWeight.Normal
-        TEXT_RESPONSE -> FontWeight.Medium
-        TOOL_CALL_NAME -> FontWeight.Bold
-        TOOL_CALL_RESULT -> FontWeight.SemiBold
+        TEXT_PROMPT -> FontWeight.Normal
+        TEXT_THINKING -> FontWeight.Thin
+        TEXT_RESPONSE -> FontWeight.Normal
+        TOOL_CALL_NAME -> FontWeight.Thin
+        TOOL_CALL_RESULT -> FontWeight.Thin
         else -> FontWeight.Normal
     }
 
@@ -275,14 +319,92 @@ private fun MessageSegment(
         else -> textPrimaryColor
     }
 
-    Text(
-        modifier = Modifier,
-        text = text,
-        fontSize = 22.sp,
-        lineHeight = 34.sp,
-        color = color,
-        fontWeight = fontWeight,
-    )
+    when (message.type) {
+        TOOL_CALL_NAME, TOOL_CALL_RESULT, TEXT_PROMPT -> {
+            Text(
+                modifier = Modifier,
+                text = text,
+                fontSize = fontSize.sp,
+                lineHeight = lineHeight.sp,
+                color = color,
+                fontWeight = fontWeight,
+            )
+        }
+        DATA_PROMPT -> TODO()
+        else -> {
+            Box {
+                Markdown(
+                    modifier = Modifier.fillMaxWidth(),
+                    content = text,
+                    colors = markdownColor(
+                        text = textPrimaryColor,
+                        codeBackground = dawsonNavy,
+                        inlineCodeBackground = dawsonNavy,
+                        dividerColor = borderColor,
+                        tableBackground = elevatedSurfaceColor
+                    ),
+                    typography = markdownTypography(
+                        text = TextStyle(
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp,
+                            color = textPrimaryColor,
+                            fontWeight = FontWeight.Normal
+                        ),
+                        code = TextStyle(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp,
+                            color = textPrimaryColor
+                        ),
+                        inlineCode = TextStyle(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = dawsonGold
+                        ),
+                        h1 = TextStyle(
+                            fontSize = 20.sp,
+                            lineHeight = 26.sp,
+                            color = textPrimaryColor,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h2 = TextStyle(
+                            fontSize = 17.sp,
+                            lineHeight = 23.sp,
+                            color = textPrimaryColor,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h3 = TextStyle(
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            color = textPrimaryColor,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        quote = TextStyle(
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp,
+                            color = textSecondaryColor,
+                            fontStyle = FontStyle.Italic
+                        )
+                    )
+                )
+                Icon(
+                    imageVector = Icons.Outlined.ContentCopy,
+                    contentDescription = "Copy",
+                    tint = textSecondaryColor,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(18.dp)
+                        .clickable {
+                            scope.launch {
+                                clipboardManager.setText(AnnotatedString(text))
+                            }
+                        }
+                )
+            }
+        }
+    }
+
 }
 
 @Composable
@@ -300,7 +422,7 @@ fun UserInputBar(
     val buttonShape = RoundedCornerShape(14.dp)
     val btnSize = 55
     val btnIconSize = 22
-    val textFieldFont = 17
+    val textFieldFont = 14
 
     Column(
         modifier = modifier
@@ -364,7 +486,7 @@ fun UserInputBar(
                 textStyle = TextStyle(
                     color = textPrimaryColor,
                     fontSize = textFieldFont.sp,
-                    lineHeight = 30.sp,
+                    lineHeight = 17.sp,
                     fontWeight = FontWeight.Normal
                 ),
                 cursorBrush = SolidColor(primaryColor),

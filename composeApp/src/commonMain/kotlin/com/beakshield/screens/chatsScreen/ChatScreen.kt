@@ -1,4 +1,4 @@
-package com.beakshield.screens.ChatsScreen
+package com.beakshield.screens.chatsScreen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -24,6 +24,8 @@ fun ChatsScreen(
     val chatUUIDSelected by chatsScreenViewModel.chatUUIDSelected.collectAsState()
     val pendingInputRequests by chatsScreenViewModel.pendingInputRequests.collectAsState()
     val groupedMessages by chatsScreenViewModel.groupedMessages.collectAsState()
+    val chats by dawson.activeChats.collectAsState()
+    val currentAgent by chatsScreenViewModel.currentAgent.collectAsState()
 
     Box(
         modifier = modifier
@@ -36,18 +38,19 @@ fun ChatsScreen(
         ) {
             ProfileView(
                 modifier = Modifier,
-                agent = null,
-                title = "Android Development Agent",
-                onTitleChange = {},
-                onModeClick = {},
+                agent = currentAgent,
+                title = chats.firstOrNull { it.uuid == chatUUIDSelected }?.title ?: "---",
+                subtitle = chats.firstOrNull { it.uuid == chatUUIDSelected }?.subtitle ?: "---",
+                onTitleChange = { chatsScreenViewModel.setTitle(it) },
+                onModeClick = { chatsScreenViewModel.setMode(it) },
                 onContextClick = {}
             )
-            userUUIDSelected?.let {
+            userUUIDSelected?.let { userUUID ->
                 ChatView(
                     modifier = Modifier,
                     groupedMessages = groupedMessages,
-                    userUUIDSelected = it,
-                    onSendMessage = {},
+                    userUUIDSelected = userUUID,
+                    onSendMessage = { chatsScreenViewModel.sendTextPrompt(it) },
                     onAttachClick = {},
                     onMicClick = {}
                 )

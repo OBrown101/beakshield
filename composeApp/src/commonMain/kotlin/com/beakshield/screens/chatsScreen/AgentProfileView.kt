@@ -1,4 +1,4 @@
-package com.beakshield.screens.ChatsScreen
+package com.beakshield.screens.chatsScreen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,8 +22,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,12 +47,14 @@ import androidx.compose.ui.tooling.preview.Devices.DESKTOP
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.PopupProperties
-import com.beakshield.activeColor
 import com.beakshield.backgroundColor
 import com.beakshield.cardColor
+import com.beakshield.composables.BubbleDropdown
+import com.beakshield.composables.DropdownItem
+import com.beakshield.dangerColor
 import com.beakshield.dawson.Agent
 import com.beakshield.dawsonGold
+import com.beakshield.lightGreenColor
 import org.jetbrains.compose.resources.painterResource
 
 @Preview(device = DESKTOP)
@@ -63,11 +63,24 @@ fun ProfileView(
     modifier: Modifier = Modifier,
     agent: Agent? = null,
     title: String = "Android Development Agent",
+    subtitle: String = "USBManager Refactor",
     onTitleChange: (String) -> Unit = {},
-    onModeClick: () -> Unit = {},
+    onModeClick: (Agent.Mode) -> Unit = {},
     onContextClick: () -> Unit = {}
 ) {
-    var modeDropdownExpanded by remember { mutableStateOf(false) }
+    var titleProvided by remember { mutableStateOf(title) }
+    val editMode = (titleProvided != title)
+    val titleIconModifier = if (editMode) {
+        Modifier.padding(10.dp)
+        Modifier.size(30.dp)
+    } else {
+        Modifier
+    }
+    val titleIconBgColor = when {
+        editMode && titleProvided.isNotEmpty() -> lightGreenColor
+        editMode -> dangerColor
+        else -> Color.Transparent
+    }
     val padBetween = 10
 
     Row(
@@ -101,8 +114,10 @@ fun ProfileView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = padBetween.dp),
-                value = title,
-                onValueChange = onTitleChange,
+                value = titleProvided,
+                onValueChange = {
+                    titleProvided = it
+                },
                 singleLine = true,
                 textStyle = TextStyle(
                     color = Color.White,
@@ -125,10 +140,18 @@ fun ProfileView(
                         }
                         Icon(
                             modifier = Modifier
-                                .width(30.dp),
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit title",
-                            tint = Color.White.copy(alpha = 0.85f)
+                                .size(22.dp)
+                                .clickable(enabled = editMode) {
+                                    if (titleProvided.isNotEmpty()) {
+                                        onTitleChange(titleProvided)
+                                    }
+                                }
+                                .clip(CircleShape)
+                                .background(titleIconBgColor)
+                                .then(titleIconModifier),
+                            imageVector = if (editMode) Icons.Default.Check else Icons.Default.Edit,
+                            contentDescription = "",
+                            tint = Color.White
                         )
                         Spacer(modifier = Modifier.weight(1f))
                     }
@@ -147,7 +170,7 @@ fun ProfileView(
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
-                    text = "USBManager Refactor",
+                    text = subtitle,
                     color = Color.White,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Normal
@@ -164,40 +187,18 @@ fun ProfileView(
                             Modifier
                                 .size(15.dp)
                                 .clip(CircleShape)
-                                .background(activeColor)
+                                .background(lightGreenColor)
                         )
                     },
                     title = "Ready",
                     subtitle = "Agent is online",
                     clickable = false
                 )
-                Box() {
-                    StatusCard(
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Outlined.Security,
-                                contentDescription = null,
-                                tint = dawsonGold,
-                                modifier = Modifier.size(25.dp)
-                            )
-                        },
-                        title = "Agent Capability",
-                        subtitle = agent?.mode?.label ?: "Unknown",
-                        onClick = {
-                            modeDropdownExpanded = true
-                            onModeClick()
-                        }
-                    )
-                    ModeDropdown(
-                        expanded = modeDropdownExpanded,
-                        selectedMode = agent?.mode,
-                        onDismissRequest = { modeDropdownExpanded = false },
-                        onModeSelected = { selectedMode ->
-                            // update your agent state here
-                            println("Selected mode: ${selectedMode.label}")
-                        }
-                    )
-                }
+                ModeDropdown(
+                    modifier = Modifier,
+                    agent = agent,
+                    onChange = onModeClick
+                )
                 StatusCard(
                     icon = {
                         Icon(
@@ -257,54 +258,48 @@ private fun StatusCard(
 
 @Composable
 fun ModeDropdown(
-    expanded: Boolean,
-    selectedMode: Agent.Mode?,
-    onDismissRequest: () -> Unit,
-    onModeSelected: (Agent.Mode) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier,
+    agent: Agent?,
+    onChange: (Agent.Mode) -> Unit
 ) {
-    val shape = RoundedCornerShape(18.dp)
-
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismissRequest,
-        properties = PopupProperties(focusable = true),
+    Box(
         modifier = modifier
-            .clip(shape)
-            .background(cardColor.copy(alpha = 0.97f))
-            .border(
-                width = 1.dp,
-                color = cardColor.copy(1.5f),
-                shape = shape
-            )
     ) {
-        Agent.Mode.entries.forEach { mode ->
-            DropdownMenuItem(
-                text = {
-                    Row {
-                        if (mode == selectedMode) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                tint = dawsonGold
-                            )
-                        } else {
-                            Spacer(Modifier.width(24.dp))
-                        }
-
-                        Spacer(Modifier.width(10.dp))
-
-                        Text(
-                            text = mode.label,
-                            color = Color.White
-                        )
-                    }
-                },
-                onClick = {
-                    onModeSelected(mode)
-                    onDismissRequest()
+        val modeItems = Agent.Mode.entries.map { mode ->
+            DropdownItem(
+                value = mode,
+                label = mode.label,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Security,
+                        contentDescription = null,
+                        tint = dawsonGold,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
             )
         }
+
+        BubbleDropdown(
+            selectedItem = modeItems.firstOrNull { it.value == agent?.mode },
+            items = modeItems,
+            onItemSelected = { onChange(it.value) },
+            menuWidth = 180.dp,
+            triggerContent = {
+                StatusCard(
+                    icon = {
+                        Icon(
+                            modifier = Modifier.size(25.dp),
+                            imageVector = Icons.Outlined.Security,
+                            contentDescription = null,
+                            tint = dawsonGold
+                        )
+                    },
+                    title = "Agent Capability",
+                    subtitle = agent?.mode?.label ?: "Unknown",
+                    clickable = false
+                )
+            }
+        )
     }
 }

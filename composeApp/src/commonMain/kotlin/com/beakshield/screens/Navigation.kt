@@ -43,12 +43,23 @@ import beakshield.composeapp.generated.resources.nav_btn_knowledge
 import beakshield.composeapp.generated.resources.nav_btn_profile
 import beakshield.composeapp.generated.resources.nav_btn_skills
 import beakshield.composeapp.generated.resources.nav_btn_system
+import com.beakshield.BeakShieldApp.Companion.agentsScreenViewModel
+import com.beakshield.BeakShieldApp.Companion.chatsScreenViewModel
+import com.beakshield.BeakShieldApp.Companion.decreesScreenViewModel
+import com.beakshield.BeakShieldApp.Companion.knowledgeScreenViewModel
+import com.beakshield.BeakShieldApp.Companion.mainScreenViewModel
+import com.beakshield.BeakShieldApp.Companion.profileScreenViewModel
+import com.beakshield.BeakShieldApp.Companion.skillsScreenViewModel
+import com.beakshield.BeakShieldApp.Companion.systemScreenViewModel
 import com.beakshield.dawsonRed
 import com.beakshield.primaryColor
-import com.beakshield.screens.ChatsScreen.ChatsScreen
+import com.beakshield.screens.chatsScreen.ChatsScreen
 import com.beakshield.screens.mainScreen.MainScreen
+import com.beakshield.screens.systemScreen.SystemScreen
 import com.beakshield.viewModels.ChatsScreenViewModel
 import com.beakshield.viewModels.MainScreenViewModel
+import com.beakshield.viewModels.RailContent
+import kotlinx.coroutines.flow.StateFlow
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
@@ -85,6 +96,18 @@ enum class Destination {
             PROFILE -> Res.drawable.nav_btn_profile
             SYSTEM -> Res.drawable.nav_btn_system
         }
+
+    val railContent: StateFlow<RailContent?>
+        get() = when (this) {
+            MAIN -> mainScreenViewModel.railContent
+            CHATS -> chatsScreenViewModel.railContent
+            AGENTS -> agentsScreenViewModel.railContent
+            KNOWLEDGE -> knowledgeScreenViewModel.railContent
+            DECREES -> decreesScreenViewModel.railContent
+            SKILLS -> skillsScreenViewModel.railContent
+            PROFILE -> profileScreenViewModel.railContent
+            SYSTEM -> systemScreenViewModel.railContent
+        }
 }
 
 @Composable
@@ -118,7 +141,11 @@ fun AppNavHost(
                     Destination.DECREES -> {}
                     Destination.SKILLS -> {}
                     Destination.PROFILE -> {}
-                    Destination.SYSTEM -> {}
+                    Destination.SYSTEM -> SystemScreen(
+                        modifier = modifier,
+                        systemScreenViewModel = systemScreenViewModel,
+                        navToScreen = navToScreen
+                    )
                 }
             }
         }

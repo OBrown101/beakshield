@@ -1,0 +1,25 @@
+package com.beakshield
+
+import com.russhwolf.settings.Settings
+
+object GlobalPrefKeys {
+    const val IS_FIRST_LAUNCH = "IS_FIRST_LAUNCH"
+    const val SERVER_ADDRESS = "SERVER_ADDRESS"
+    const val SERVER_PORT = "SERVER_PORT"
+}
+
+class Preferences(
+    private val settings: Settings = Settings()
+) {
+    var isFirstLaunch: Boolean
+        get() = settings.getBoolean(GlobalPrefKeys.IS_FIRST_LAUNCH, true)
+        set(value) = settings.putBoolean(GlobalPrefKeys.IS_FIRST_LAUNCH, value)
+
+    var serverAddress: String
+        get() = settings.getString(GlobalPrefKeys.SERVER_ADDRESS, "")
+        set(value) = settings.putString(GlobalPrefKeys.SERVER_ADDRESS, value)
+
+    var serverPort: Int
+        get() = settings.getInt(GlobalPrefKeys.SERVER_PORT, 0)
+        set(value) = settings.putInt(GlobalPrefKeys.SERVER_PORT, value)
+}
