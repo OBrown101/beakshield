@@ -43,17 +43,21 @@ fun ChatsScreen(
                 subtitle = chats.firstOrNull { it.uuid == chatUUIDSelected }?.subtitle ?: "---",
                 onTitleChange = { chatsScreenViewModel.setTitle(it) },
                 onModeClick = { chatsScreenViewModel.setMode(it) },
+                onModelClick = { chatsScreenViewModel.setModel(it) },
                 onContextClick = {}
             )
             userUUIDSelected?.let { userUUID ->
-                ChatView(
-                    modifier = Modifier,
-                    groupedMessages = groupedMessages,
-                    userUUIDSelected = userUUID,
-                    onSendMessage = { chatsScreenViewModel.sendTextPrompt(it) },
-                    onAttachClick = {},
-                    onMicClick = {}
-                )
+                currentAgent?.let { agent ->
+                    ChatView(
+                        modifier = Modifier,
+                        agent = agent,
+                        groupedMessages = groupedMessages,
+                        userUUIDSelected = userUUID,
+                        onSendMessage = { chatsScreenViewModel.sendTextPrompt(it) },
+                        onAttachClick = {},
+                        onMicClick = {}
+                    )
+                }
             }
         }
     }

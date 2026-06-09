@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.GenericShape
@@ -22,7 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,12 +44,15 @@ fun <T> BubbleDropdown(
     items: List<DropdownItem<T>>,
     onItemSelected: (DropdownItem<T>) -> Unit = {},
     selectedItem: DropdownItem<T>? = null,
-    menuWidth: Dp = 260.dp,
+    menuWidth: Int = 260,
+    menuHeight: Int? = null,
     triggerContent: @Composable (expanded: Boolean) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Box(modifier = modifier) {
+    Box(
+        modifier = modifier
+    ) {
         Box(
             modifier = Modifier.clickable { expanded = !expanded }
         ) {
@@ -57,7 +61,8 @@ fun <T> BubbleDropdown(
 
         DropdownMenu(
             modifier = Modifier
-                .width(menuWidth)
+                .width(menuWidth.dp)
+                .then(menuHeight?.let { Modifier.heightIn(max = it.dp) } ?: Modifier)
                 .clip(BubbleDropdownShape)
                 .background(cardColor, BubbleDropdownShape)
                 .border(1.dp, backgroundColor, BubbleDropdownShape),
@@ -82,7 +87,8 @@ fun <T> BubbleDropdown(
                                 text = item.label,
                                 color = if (isSelected) dawsonGold else Color.White,
                                 fontSize = 14.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     },

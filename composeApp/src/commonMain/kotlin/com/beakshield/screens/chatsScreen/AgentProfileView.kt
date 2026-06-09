@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,12 +20,14 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -47,13 +51,17 @@ import androidx.compose.ui.tooling.preview.Devices.DESKTOP
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.beakshield.BeakShieldApp.Companion.dawson
 import com.beakshield.backgroundColor
 import com.beakshield.cardColor
 import com.beakshield.composables.BubbleDropdown
 import com.beakshield.composables.DropdownItem
 import com.beakshield.dangerColor
 import com.beakshield.dawson.Agent
+import com.beakshield.dawson.LLMModel
+import com.beakshield.dawson.Provider
 import com.beakshield.dawsonGold
+import com.beakshield.formatWithSuffix
 import com.beakshield.lightGreenColor
 import org.jetbrains.compose.resources.painterResource
 
@@ -61,11 +69,12 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun ProfileView(
     modifier: Modifier = Modifier,
-    agent: Agent? = null,
+    agent: Agent? = Agent.MockAgent.mockAgents[0],
     title: String = "Android Development Agent",
     subtitle: String = "USBManager Refactor",
     onTitleChange: (String) -> Unit = {},
     onModeClick: (Agent.Mode) -> Unit = {},
+    onModelClick: (LLMModel) -> Unit = {},
     onContextClick: () -> Unit = {}
 ) {
     var titleProvided by remember { mutableStateOf(title) }
@@ -87,21 +96,22 @@ fun ProfileView(
         modifier = modifier
             .fillMaxWidth()
             .background(backgroundColor)
-            .padding(28.dp),
+            .padding(top = 20.dp, bottom = 15.dp)
+            .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(120.dp)
+                .size(90.dp)
                 .clip(CircleShape)
                 .border(2.dp, dawsonGold, CircleShape),
         ) {
             agent?.let {
                 Image(
-                    modifier = Modifier,
+                    modifier = Modifier.align(Alignment.Center),
                     painter = painterResource(it.type.image),
                     contentDescription = null,
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
             }
         }
@@ -121,7 +131,7 @@ fun ProfileView(
                 singleLine = true,
                 textStyle = TextStyle(
                     color = Color.White,
-                    fontSize = 27.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Normal,
                     fontFamily = FontFamily.Serif,
                     shadow = Shadow(
@@ -170,16 +180,18 @@ fun ProfileView(
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
-                    text = subtitle,
+                    text = subtitle.ifBlank { "---" },
                     color = Color.White,
-                    fontSize = 17.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Normal
                 )
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(20.dp),
-                verticalAlignment = Alignment.CenterVertically
+            FlowRow(
+                modifier = Modifier,
+                horizontalArrangement = Arrangement.spacedBy(15.dp),
+                verticalArrangement = Arrangement.spacedBy(15.dp),
+                itemVerticalAlignment = Alignment.CenterVertically
             ) {
                 StatusCard(
                     icon = {
@@ -187,17 +199,35 @@ fun ProfileView(
                             Modifier
                                 .size(15.dp)
                                 .clip(CircleShape)
-                                .background(lightGreenColor)
+                                .background(agent?.state?.color ?: dawsonGold)
                         )
                     },
-                    title = "Ready",
-                    subtitle = "Agent is online",
+                    title = (agent?.state?.label ?: Agent.AgentState.READY.label),
+                    subtitle = agent?.state?.message ?: "---",
                     clickable = false
                 )
                 ModeDropdown(
                     modifier = Modifier,
                     agent = agent,
                     onChange = onModeClick
+                )
+                ModelDropdown(
+                    modifier = Modifier,
+                    agent = agent,
+                    onChange = onModelClick
+                )
+                StatusCard(
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.Layers,
+                            contentDescription = null,
+                            tint = dawsonGold,
+                            modifier = Modifier.size(25.dp)
+                        )
+                    },
+                    title = "Thought Window",
+                    subtitle = agent?.thoughtWindow?.formatWithSuffix()?.let { "$it msgs" } ?: "---",
+                    onClick = onContextClick
                 )
                 StatusCard(
                     icon = {
@@ -209,7 +239,7 @@ fun ProfileView(
                         )
                     },
                     title = "Context Window",
-                    subtitle = "128K tokens",
+                    subtitle = agent?.contextWindow?.formatWithSuffix()?.let { "$it tokens" } ?: "---",
                     onClick = onContextClick
                 )
             }
@@ -250,7 +280,7 @@ private fun StatusCard(
                     withStyle(style = SpanStyle(Color.White, fontSize = 13.sp)) { append(title + "\n") }
                     withStyle(style = SpanStyle(Color.White.copy(alpha = 0.65f), fontSize = 12.sp)) { append(subtitle) }
                 },
-                lineHeight = 17.sp
+                lineHeight = 14.sp
             )
         }
     }
@@ -283,8 +313,8 @@ fun ModeDropdown(
         BubbleDropdown(
             selectedItem = modeItems.firstOrNull { it.value == agent?.mode },
             items = modeItems,
+            menuWidth = 180,
             onItemSelected = { onChange(it.value) },
-            menuWidth = 180.dp,
             triggerContent = {
                 StatusCard(
                     icon = {
@@ -296,7 +326,60 @@ fun ModeDropdown(
                         )
                     },
                     title = "Agent Capability",
-                    subtitle = agent?.mode?.label ?: "Unknown",
+                    subtitle = agent?.mode?.label ?: "---",
+                    clickable = false
+                )
+            }
+        )
+    }
+}
+
+@Composable
+fun ModelDropdown(
+    modifier: Modifier,
+    agent: Agent?,
+    onChange: (LLMModel) -> Unit
+) {
+    val isPreview = LocalInspectionMode.current
+    val providers by if (isPreview) remember { mutableStateOf(Provider.MockProvider.mockProviders) } else dawson.activeProviders.collectAsState()
+
+    Box(
+        modifier = modifier
+    ) {
+        val modelItems = providers.flatMap { it.models }.map { model ->
+            DropdownItem(
+                value = model,
+                label = model.name,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Book,
+                        contentDescription = null,
+                        tint = dawsonGold,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            )
+        }
+
+        BubbleDropdown(
+            modifier = Modifier,
+            selectedItem = modelItems.firstOrNull { it.value.name == agent?.model?.name },
+            items = modelItems,
+            menuHeight = 180,
+            menuWidth = 180,
+            onItemSelected = { onChange(it.value) },
+            triggerContent = {
+                StatusCard(
+                    icon = {
+                        Icon(
+                            modifier = Modifier.size(25.dp),
+                            imageVector = Icons.Outlined.Book,
+                            contentDescription = null,
+                            tint = dawsonGold
+                        )
+                    },
+                    title = "Model",
+                    subtitle = agent?.model?.name ?: "---",
                     clickable = false
                 )
             }

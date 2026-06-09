@@ -1,7 +1,6 @@
 package com.beakshield.dawson
 
 import com.beakshield.BeakShieldApp.Companion.preferences
-import com.beakshield.user.User
 import com.beakshield.websocket.AgentData
 import com.beakshield.websocket.ChatData
 import com.beakshield.websocket.ChatData.DataType
@@ -199,6 +198,9 @@ class Dawson {
         val updatedAgent = _activeAgents.value.firstOrNull { it.uuid == agent.uuid }?.copy(
             mode = agent.mode,
             model = agent.model,
+            thoughtWindow = agent.thoughtWindow,
+            contextWindow = agent.contextWindow,
+            useThinking = agent.useThinking,
             directories = agent.directories
         ) ?: return
         val payload = WebSocketClient.json.encodeToJsonElement(serializer<Agent>(), updatedAgent)

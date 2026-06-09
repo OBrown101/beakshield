@@ -1,4 +1,4 @@
-package com.beakshield.user
+package com.beakshield.dawson
 
 import kotlinx.serialization.Serializable
 import kotlin.time.Clock

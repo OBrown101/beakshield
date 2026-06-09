@@ -12,6 +12,7 @@ data class Provider(
     val updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
 ) {
 
+    @Serializable
     enum class ProviderType {
         OLLAMA,
         OPENAI,

@@ -57,11 +57,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import beakshield.composeapp.generated.resources.Res
-import beakshield.composeapp.generated.resources.example_avatar
+import beakshield.composeapp.generated.resources.user_profile
 import com.beakshield.backgroundColor
 import com.beakshield.borderColor
 import com.beakshield.cardColor
 import com.beakshield.dangerColor
+import com.beakshield.dawson.Agent
 import com.beakshield.dawson.Message
 import com.beakshield.dawson.Message.MsgType.DATA_PROMPT
 import com.beakshield.dawson.Message.MsgType.TEXT_PROMPT
@@ -86,9 +87,9 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun ChatView(
     modifier: Modifier = Modifier,
+    agent: Agent,
     groupedMessages: Map<String, List<Message>>,
     userUUIDSelected: String,
-    agentName: String = "Android Agent",
     onSendMessage: (String) -> Unit,
     onAttachClick: () -> Unit = {},
     onMicClick: () -> Unit = {}
@@ -97,6 +98,14 @@ fun ChatView(
     val listState = rememberLazyListState()
     var autoScrollEnabled by remember { mutableStateOf(true) }
 
+    fun isAtBottom(): Boolean {
+        val layoutInfo = listState.layoutInfo
+        val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull() ?: return true
+
+        return lastVisibleItem.index >= layoutInfo.totalItemsCount - 1 &&
+                lastVisibleItem.offset + lastVisibleItem.size <= layoutInfo.viewportEndOffset + 48
+    }
+
     val contentVersion = groupedMessages.values.sumOf { messages ->
         messages.sumOf { message ->
             message.chunks.values.sumOf { it.length }
@@ -104,17 +113,14 @@ fun ChatView(
     }
 
     LaunchedEffect(listState.isScrollInProgress) {
-        if (!listState.isScrollInProgress) return@LaunchedEffect
-
-        autoScrollEnabled =
-            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
-                ?.let { it >= listState.layoutInfo.totalItemsCount - 1 }
-                ?: true
+        if (listState.isScrollInProgress) {
+            autoScrollEnabled = isAtBottom()
+        }
     }
 
     LaunchedEffect(contentVersion, groupedMessages.size) {
         if (autoScrollEnabled && groupedMessages.isNotEmpty()) {
-            listState.animateScrollToItem(groupedMessages.size - 1)
+            listState.scrollToItem(groupedMessages.size - 1)
         }
     }
 
@@ -122,7 +128,7 @@ fun ChatView(
         modifier = modifier
             .fillMaxSize()
             .background(backgroundColor)
-            .padding(horizontal = 28.dp, vertical = 24.dp)
+            .padding(horizontal = 15.dp, vertical = 10.dp)
     ) {
         LazyColumn(
             modifier = Modifier
@@ -132,8 +138,12 @@ fun ChatView(
             verticalArrangement = Arrangement.spacedBy(26.dp),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            items(groupedMessages.entries.toList()) { entry ->
+            items(
+                items = groupedMessages.entries.toList(),
+                key = { it.key}
+            ) { entry ->
                 ChatBubbleRow(
+                    agent = agent,
                     isUser = (entry.value.firstOrNull()?.sourceUUID == userUUIDSelected),
                     messages = entry.value
                 )
@@ -159,6 +169,7 @@ fun ChatView(
 
 @Composable
 private fun ChatBubbleRow(
+    agent: Agent,
     isUser: Boolean,
     messages: List<Message>
 ) {
@@ -171,7 +182,7 @@ private fun ChatBubbleRow(
     ) {
         if (!isUser) {
             ChatAvatar(
-                painter = painterResource(Res.drawable.example_avatar),
+                painter = painterResource(agent.type.image),
                 size = avatarSize
             )
             Spacer(Modifier.width(18.dp))
@@ -187,7 +198,7 @@ private fun ChatBubbleRow(
             Spacer(Modifier.width(18.dp))
 
             ChatAvatar(
-                painter = painterResource(Res.drawable.example_avatar),
+                painter = painterResource(Res.drawable.user_profile),
                 size = avatarSize
             )
         }
@@ -199,8 +210,10 @@ private fun ChatAvatar(
     painter: Painter,
     size: Int
 ) {
+
     Image(
         painter = painter,
+        alignment = Alignment.Center,
         contentDescription = null,
         modifier = Modifier
             .size(size.dp)
@@ -210,7 +223,7 @@ private fun ChatAvatar(
                 color = dawsonGold,
                 shape = CircleShape
             ),
-        contentScale = ContentScale.Crop
+        contentScale = ContentScale.Fit
     )
 }
 

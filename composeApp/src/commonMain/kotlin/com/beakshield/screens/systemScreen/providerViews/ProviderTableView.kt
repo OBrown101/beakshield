@@ -120,7 +120,7 @@ fun ProviderTableCell(
                 Text(
                     modifier = Modifier.align(Alignment.Center),
                     text = if (provider.apiKey.isNotEmpty()) "Not Configured" else "Ready",
-                    color = if (provider.apiKey.isNotEmpty()) lightGreenColor else dangerColor,
+                    color = if (provider.apiKey.isNotEmpty()) dangerColor else lightGreenColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )

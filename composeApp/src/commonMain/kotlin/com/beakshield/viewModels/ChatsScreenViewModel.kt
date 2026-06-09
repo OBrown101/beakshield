@@ -7,6 +7,7 @@ import com.beakshield.BeakShieldApp.Companion.baseScreenViewModel
 import com.beakshield.BeakShieldApp.Companion.dawson
 import com.beakshield.dawson.Agent
 import com.beakshield.dawson.Chat
+import com.beakshield.dawson.LLMModel
 import com.beakshield.dawson.Message
 import com.beakshield.screens.Destination
 import com.beakshield.screens.chatsScreen.ChatsSideRail
@@ -141,6 +142,15 @@ class ChatsScreenViewModel : VModel {
         val agentUUID = dawson.activeChats.value.firstOrNull { it.uuid == chatUUID }?.agentUUID ?: return
         val updatedAgent = dawson.activeAgents.value.firstOrNull { it.uuid == agentUUID }?.copy(
             mode = mode
+        ) ?: return
+        dawson.updateAgent(updatedAgent)
+    }
+
+    fun setModel(llmModel: LLMModel) {
+        val chatUUID = _chatUUIDSelected.value ?: return
+        val agentUUID = dawson.activeChats.value.firstOrNull { it.uuid == chatUUID }?.agentUUID ?: return
+        val updatedAgent = dawson.activeAgents.value.firstOrNull { it.uuid == agentUUID }?.copy(
+            model = llmModel
         ) ?: return
         dawson.updateAgent(updatedAgent)
     }
