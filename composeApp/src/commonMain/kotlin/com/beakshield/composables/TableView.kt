@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.beakshield.dangerColor
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -209,7 +210,7 @@ fun DeleteCellBtn(
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .background(Color.Red),
+            .background(dangerColor),
         contentAlignment = Alignment.Center
     ) {
         IconButton(

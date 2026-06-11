@@ -150,7 +150,7 @@ fun ProviderConfigView(
                     color = Color.Black,
                     borderColor = dawsonGold,
                     bg = dawsonGold,
-                    enabled = apiKeyProvided.isNotEmpty(),
+                    enabled = true,
                     onClick = {
                         onSave(apiKeyProvided)
                     }

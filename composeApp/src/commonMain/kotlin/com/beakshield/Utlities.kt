@@ -2,6 +2,10 @@ package com.beakshield
 
 import kotlin.math.round
 
+expect val isJvm: Boolean
+
+expect suspend fun pickFilePath(): String?
+
 fun Int.formatWithSuffix(): String = when {
     this >= 1_000_000 -> {
          val v = round(this / 1_000_000.0 * 10) / 10.0

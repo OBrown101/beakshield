@@ -62,7 +62,7 @@ class Dawson {
 
         scope.launch {
             socket.incomingPackets.collect { packet ->
-                println("Packet received from DAWSON server: TYPE: ${packet.type}, PAYLOAD: ${packet.payload}")
+                println("Packet received from DAWSON server: TYPE: ${packet.type}, PAYLOAD: ${packet.payload.toString().take(100)}")
                 when (packet.type) {
                     PONG -> {
                         println("Server pong")
@@ -122,13 +122,12 @@ class Dawson {
         }
     }
 
-    fun respondToRequest(request: UserInputRequest, approved: Boolean?, response: String? = null) {
+    fun respondToRequest(response: UserInputResponse) {
         _pendingInputRequests.update { requests ->
-            requests.filterNot { it.agentUUID == request.agentUUID }
+            requests.filterNot { it.agentUUID == response.agentUUID }
         }
 
-        val payload = UserInputResponse(request.agentUUID, request.userUUID, approved, response)
-        socket.send(payload, UserInputResponse::class, USER_INPUT_REQUEST_RESPONSE)
+        socket.send(response, UserInputResponse::class, USER_INPUT_REQUEST_RESPONSE)
     }
 
     fun getAgentUUIDForChat(chatUUID: String): String? {
@@ -180,6 +179,13 @@ class Dawson {
         val payload = WebSocketClient.json.encodeToJsonElement(serializer<Map<Provider.ProviderType, String>>(), apiKeys)
         val configData = ConfigData(userUUID, ConfigData.DataType.UPDATE_PROVIDER, payload)
         socket.send(configData, ConfigData::class, CONFIG_DATA)
+    }
+
+    fun deleteChat(chat: Chat) {
+        val userUUID = _currentUserUUID.value ?: return
+        val payload = WebSocketClient.json.encodeToJsonElement(serializer<String>(), chat.uuid)
+        val chatData = ChatData(chat.uuid, userUUID, chat.agentUUID, ChatData.DataType.DELETE_CHAT, payload)
+        socket.send(chatData, ChatData::class, CHAT_DATA)
     }
 
     fun updateChat(chat: Chat) {

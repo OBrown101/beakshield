@@ -26,6 +26,7 @@ fun ChatsScreen(
     val groupedMessages by chatsScreenViewModel.groupedMessages.collectAsState()
     val chats by dawson.activeChats.collectAsState()
     val currentAgent by chatsScreenViewModel.currentAgent.collectAsState()
+    val pendingRequests by dawson.pendingInputRequests.collectAsState()
 
     Box(
         modifier = modifier
@@ -52,9 +53,15 @@ fun ChatsScreen(
                         modifier = Modifier,
                         agent = agent,
                         groupedMessages = groupedMessages,
+                        pendingInputRequests = pendingRequests,
                         userUUIDSelected = userUUID,
                         onSendMessage = { chatsScreenViewModel.sendTextPrompt(it) },
-                        onAttachClick = {},
+                        onRespondToRequest = { response ->
+                            dawson.respondToRequest(response)
+                        },
+                        onAttachClick = {
+                            chatsScreenViewModel.addDirectories(it)
+                        },
                         onMicClick = {}
                     )
                 }

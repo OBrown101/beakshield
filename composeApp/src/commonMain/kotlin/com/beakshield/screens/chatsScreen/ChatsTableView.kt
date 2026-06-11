@@ -44,10 +44,14 @@ fun ChatsTableView(
         cellViewModels = chatCellViewModels,
         cellHeight = { 90.dp },
         borderColor = Color.Transparent,
+        enableSwipeLeft = true,
         cellOnClick = { cellViewModel ->
             chatCellViewModels.forEach { if (it.id != cellViewModel.id) it.selected = false }
             cellViewModel.selected = true
             cellViewModel.onSelect()
+        },
+        cellOnSwipeLeft = { cellViewModel ->
+            cellViewModel.onDelete()
         },
     ) { modifier, cellViewModel ->
         ChatTableCell(modifier, cellViewModel)

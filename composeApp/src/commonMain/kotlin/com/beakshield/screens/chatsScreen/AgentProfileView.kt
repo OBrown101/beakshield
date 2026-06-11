@@ -202,8 +202,8 @@ fun ProfileView(
                                 .background(agent?.state?.color ?: dawsonGold)
                         )
                     },
-                    title = (agent?.state?.label ?: Agent.AgentState.READY.label),
-                    subtitle = agent?.state?.message ?: "---",
+                    title = (agent?.state?.label ?: "Connecting"),
+                    subtitle = agent?.state?.message ?: "Agent being spawned",
                     clickable = false
                 )
                 ModeDropdown(

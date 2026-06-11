@@ -9,7 +9,8 @@ import com.beakshield.dawson.Chat
 data class ChatCellViewModel(
     override val id: Long,
     val chat: Chat,
-    val onSelect: () -> Unit
+    val onSelect: () -> Unit,
+    val onDelete: () -> Unit
 ) : TableCellViewModel {
     override var selected by mutableStateOf(false)
     override var swipeState by mutableStateOf(TableCellViewModel.SwipeAnchor.Start)
@@ -50,22 +51,26 @@ data class ChatCellViewModel(
             ChatCellViewModel(
                 id = 0L,
                 chat = Chat.MockChat.mockChats[0],
-                onSelect = {}
+                onSelect = {},
+                onDelete = {}
             ),
             ChatCellViewModel(
                 id = 1L,
                 chat = Chat.MockChat.mockChats[1],
-                onSelect = {}
+                onSelect = {},
+                onDelete = {}
             ),
             ChatCellViewModel(
                 id = 2L,
                 chat = Chat.MockChat.mockChats[4],
-                onSelect = {}
+                onSelect = {},
+                onDelete = {}
             ),
             ChatCellViewModel(
                 id = 3L,
                 chat = Chat.MockChat.mockChats[5],
-                onSelect = {}
+                onSelect = {},
+                onDelete = {}
             )
         )
     }

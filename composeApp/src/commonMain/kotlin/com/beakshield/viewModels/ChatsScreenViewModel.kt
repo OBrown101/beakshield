@@ -61,11 +61,7 @@ class ChatsScreenViewModel : VModel {
 
     val chatCellViewModels: StateFlow<List<ChatCellViewModel>> =
         combine(dawson.activeChats, _searchText, _chatUUIDSelected) { chats, searchText, selectedUUID ->
-            buildChatCellViewModels(
-                chats = chats,
-                searchText = searchText,
-                selectedUUID = selectedUUID
-            )
+            buildChatCellViewModels(chats, searchText, selectedUUID)
         }.stateIn(scope, SharingStarted.Lazily, emptyList())
 
     init {
@@ -119,6 +115,9 @@ class ChatsScreenViewModel : VModel {
             chat = chat,
             onSelect = {
                 selectChat(chat.uuid)
+            },
+            onDelete = {
+                dawson.deleteChat(chat)
             }
         ).apply {
             selected = chat.uuid == selectedUUID
@@ -155,11 +154,12 @@ class ChatsScreenViewModel : VModel {
         dawson.updateAgent(updatedAgent)
     }
 
-    fun addDirectories(directories: List<String>) {
+    fun addDirectories(directories: String) {
         val chatUUID = _chatUUIDSelected.value ?: return
         val agentUUID = dawson.activeChats.value.firstOrNull { it.uuid == chatUUID }?.agentUUID ?: return
-        val updatedAgent = dawson.activeAgents.value.firstOrNull { it.uuid == agentUUID }?.copy(
-            directories = directories
+        val curAgent = dawson.activeAgents.value.firstOrNull { it.uuid == agentUUID }
+        val updatedAgent = curAgent?.copy(
+            directories = (curAgent.directories + directories).distinct()
         ) ?: return
         dawson.updateAgent(updatedAgent)
     }

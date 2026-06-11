@@ -45,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
@@ -58,7 +59,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import beakshield.composeapp.generated.resources.Res
 import beakshield.composeapp.generated.resources.user_profile
-import com.beakshield.backgroundColor
 import com.beakshield.borderColor
 import com.beakshield.cardColor
 import com.beakshield.dangerColor
@@ -74,9 +74,13 @@ import com.beakshield.dawsonGold
 import com.beakshield.dawsonNavy
 import com.beakshield.dawsonRed
 import com.beakshield.elevatedSurfaceColor
+import com.beakshield.isJvm
+import com.beakshield.pickFilePath
 import com.beakshield.primaryColor
 import com.beakshield.textPrimaryColor
 import com.beakshield.textSecondaryColor
+import com.beakshield.websocket.UserInputRequest
+import com.beakshield.websocket.UserInputResponse
 import com.mikepenz.markdown.compose.Markdown
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
@@ -89,14 +93,47 @@ fun ChatView(
     modifier: Modifier = Modifier,
     agent: Agent,
     groupedMessages: Map<String, List<Message>>,
+    pendingInputRequests: List<UserInputRequest> = emptyList(),
     userUUIDSelected: String,
     onSendMessage: (String) -> Unit,
-    onAttachClick: () -> Unit = {},
+    onRespondToRequest: (UserInputResponse) -> Unit,
+    onAttachClick: (String) -> Unit = {},
     onMicClick: () -> Unit = {}
 ) {
+    val scope = rememberCoroutineScope()
+    val pendingRequest = pendingInputRequests.firstOrNull { it.agentUUID == agent.uuid && it.userUUID == userUUIDSelected }
     var userInput by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     var autoScrollEnabled by remember { mutableStateOf(true) }
+
+    fun attachDirectory() {
+        scope.launch {
+            val path = if (isJvm) {
+                pickFilePath()
+            } else {
+                userInput.trim().takeIf { it.isNotEmpty() }
+            }
+
+            path?.let {
+                onAttachClick(it)
+            }
+        }
+    }
+
+    fun onSend() {
+        val trimmed = userInput.trim()
+        if (trimmed.isNotEmpty()) {
+            pendingRequest?.let { request ->
+                if (!request.type.textResp) return@let
+                val response = UserInputResponse(agent.uuid, userUUIDSelected, null, trimmed)
+                onRespondToRequest(response)
+            } ?: run {
+                onSendMessage(trimmed)
+            }
+
+            userInput = ""
+        }
+    }
 
     fun isAtBottom(): Boolean {
         val layoutInfo = listState.layoutInfo
@@ -127,7 +164,7 @@ fun ChatView(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(backgroundColor)
+            .background(Color.Transparent)
             .padding(horizontal = 15.dp, vertical = 10.dp)
     ) {
         LazyColumn(
@@ -150,19 +187,113 @@ fun ChatView(
             }
         }
 
+        pendingRequest?.let { request ->
+            if (!request.type.binaryResp) return@let
+            PendingInputRequestSegment(
+                request = request,
+                onApprove = {
+                    val response = UserInputResponse(agent.uuid, userUUIDSelected, true, null)
+                    onRespondToRequest(response)
+                },
+                onDeny = {
+                    val response = UserInputResponse(agent.uuid, userUUIDSelected, false, null)
+                    onRespondToRequest(response)
+                }
+            )
+
+            Spacer(Modifier.height(10.dp))
+        }
+
         UserInputBar(
             value = userInput,
             onValueChange = { userInput = it },
             placeholder = "Ask agent anything...",
-            onAttachClick = onAttachClick,
+            onAttachClick = {
+                attachDirectory()
+            },
             onMicClick = onMicClick,
             onSendClick = {
-                val trimmed = userInput.trim()
-                if (trimmed.isNotEmpty()) {
-                    onSendMessage(trimmed)
-                    userInput = ""
-                }
+                onSend()
             }
+        )
+    }
+}
+
+@Composable
+private fun PendingInputRequestSegment(
+    request: UserInputRequest,
+    onApprove: () -> Unit,
+    onDeny: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(dawsonNavy)
+            .border(
+                width = 1.dp,
+                color = dawsonGold.copy(alpha = 0.7f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(16.dp)
+    ) {
+        Text(
+            text = request.type.name.lowercase().replaceFirstChar { it.uppercase() },
+            color = dawsonGold,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Text(
+            modifier = Modifier.padding(top = 6.dp),
+            text = request.prompt,
+            color = textPrimaryColor,
+            fontSize = 14.sp,
+            lineHeight = 18.sp
+        )
+
+        if (request.type == UserInputRequest.ReqType.PERMISSION) {
+            Row(
+                modifier = Modifier.padding(top = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                PendingRequestButton(
+                    text = "Approve",
+                    onClick = onApprove
+                )
+
+                PendingRequestButton(
+                    text = "Deny",
+                    onClick = onDeny
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PendingRequestButton(
+    text: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(cardColor)
+            .border(
+                width = 1.dp,
+                color = borderColor.copy(alpha = 0.85f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = textPrimaryColor,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
@@ -212,9 +343,6 @@ private fun ChatAvatar(
 ) {
 
     Image(
-        painter = painter,
-        alignment = Alignment.Center,
-        contentDescription = null,
         modifier = Modifier
             .size(size.dp)
             .clip(CircleShape)
@@ -222,7 +350,11 @@ private fun ChatAvatar(
                 width = 2.dp,
                 color = dawsonGold,
                 shape = CircleShape
-            ),
+            )
+            .background(Color.Black),
+        painter = painter,
+        alignment = Alignment.Center,
+        contentDescription = null,
         contentScale = ContentScale.Fit
     )
 }
