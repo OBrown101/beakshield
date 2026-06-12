@@ -152,7 +152,6 @@ fun AppNavHost(
     }
 }
 
-@Preview
 @Composable
 fun NavButton(
     modifier: Modifier = Modifier,
@@ -218,6 +217,7 @@ fun NavigationRail(
     navToScreen: (Destination) -> Unit = {}
 ) {
     val isPreview = LocalInspectionMode.current
+//     val scrollState = rememberScrollState()
 
     Box(
         modifier = modifier
@@ -229,6 +229,7 @@ fun NavigationRail(
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
+//                .verticalScroll(scrollState)
                 .background(Color.Transparent),
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.Start

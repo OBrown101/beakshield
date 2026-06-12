@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
@@ -105,6 +107,7 @@ fun MainBase(
 ) {
     val defaultNavWidth = 210
     var navWidth by remember { mutableStateOf(defaultNavWidth) }
+    val scrollState = rememberScrollState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -150,6 +153,7 @@ fun MainBase(
                     modifier = Modifier
                         .height(800.dp)
                         .align(Alignment.TopStart)
+                        .verticalScroll(scrollState)
                 ) {
                     Image(
                         modifier = Modifier

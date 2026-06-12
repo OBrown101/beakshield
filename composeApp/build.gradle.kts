@@ -132,6 +132,17 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.beakshield"
             packageVersion = "1.0.0"
+
+            macOS {
+                iconFile.set(project.file("src/jvmMain/resources/icon_beakshield.icns"))
+                bundleID = "com.beakshield.app"
+            }
+            windows {
+                iconFile.set(project.file("src/jvmMain/resources/icon_beakshield.ico"))
+            }
+            linux {
+                iconFile.set(project.file("src/jvmMain/resources/icon_beakshield.png"))
+            }
         }
     }
 }

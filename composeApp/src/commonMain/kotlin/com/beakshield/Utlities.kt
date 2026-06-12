@@ -3,7 +3,6 @@ package com.beakshield
 import kotlin.math.round
 
 expect val isJvm: Boolean
-
 expect suspend fun pickFilePath(): String?
 
 fun Int.formatWithSuffix(): String = when {
