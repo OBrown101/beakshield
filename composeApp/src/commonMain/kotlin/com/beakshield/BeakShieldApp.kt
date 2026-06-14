@@ -11,51 +11,64 @@ import com.beakshield.viewModels.ProfileScreenViewModel
 import com.beakshield.viewModels.SkillsScreenViewModel
 import com.beakshield.viewModels.SystemScreenViewModel
 
-class BeakShieldApp {
+object BeakShieldApp {
 
-    companion object {
-        val preferences: Preferences by lazy {
-            Preferences()
-        }
+    val preferences: Preferences by lazy {
+        Preferences()
+    }
 
-        val dawson by lazy {
-            Dawson()
-        }
+    val dawson by lazy {
+        Dawson()
+    }
 
-        val baseScreenViewModel by lazy {
-            BaseScreenViewModel()
-        }
+    val baseScreenViewModel by lazy {
+        BaseScreenViewModel()
+    }
 
-        val mainScreenViewModel by lazy {
-            MainScreenViewModel()
-        }
+    val mainScreenViewModel by lazy {
+        MainScreenViewModel()
+    }
 
-        val chatsScreenViewModel by lazy {
-            ChatsScreenViewModel()
-        }
+    val chatsScreenViewModel by lazy {
+        ChatsScreenViewModel()
+    }
 
-        val agentsScreenViewModel by lazy {
-            AgentsScreenViewModel()
-        }
+    val agentsScreenViewModel by lazy {
+        AgentsScreenViewModel()
+    }
 
-        val knowledgeScreenViewModel by lazy {
-            KnowledgeScreenViewModel()
-        }
+    val knowledgeScreenViewModel by lazy {
+        KnowledgeScreenViewModel()
+    }
 
-        val decreesScreenViewModel by lazy {
-            DecreesScreenViewModel()
-        }
+    val decreesScreenViewModel by lazy {
+        DecreesScreenViewModel()
+    }
 
-        val skillsScreenViewModel by lazy {
-            SkillsScreenViewModel()
-        }
+    val skillsScreenViewModel by lazy {
+        SkillsScreenViewModel()
+    }
 
-        val profileScreenViewModel by lazy {
-            ProfileScreenViewModel()
-        }
+    val profileScreenViewModel by lazy {
+        ProfileScreenViewModel()
+    }
 
-        val systemScreenViewModel by lazy {
-            SystemScreenViewModel()
-        }
+    val systemScreenViewModel by lazy {
+        SystemScreenViewModel()
+    }
+
+    fun onCreate() {
+        preferences
+        dawson
+
+        baseScreenViewModel
+        mainScreenViewModel
+        chatsScreenViewModel
+        agentsScreenViewModel
+        knowledgeScreenViewModel
+        decreesScreenViewModel
+        skillsScreenViewModel
+        profileScreenViewModel
+        systemScreenViewModel
     }
 }

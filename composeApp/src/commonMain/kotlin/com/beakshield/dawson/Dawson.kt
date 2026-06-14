@@ -1,6 +1,6 @@
 package com.beakshield.dawson
 
-import com.beakshield.BeakShieldApp.Companion.preferences
+import com.beakshield.BeakShieldApp.preferences
 import com.beakshield.websocket.AgentData
 import com.beakshield.websocket.ChatData
 import com.beakshield.websocket.ChatData.DataType
@@ -36,6 +36,7 @@ class Dawson {
     private val socket = WebSocketClient()
     val connectionState = socket.connectionState
     private var syncTimerJob: Job? = null
+    private var connectTimerJob: Job? = null
 
     private val _currentUserUUID = MutableStateFlow<String?>(null)
     val currentUserUUID = _currentUserUUID.asStateFlow()
@@ -97,7 +98,7 @@ class Dawson {
             }
         }
 
-        connect(preferences.serverAddress, preferences.serverPort)
+        startConnectTimer()
     }
 
     fun connect(address: String = "localhost", port: Int = 8080) {
@@ -108,7 +109,20 @@ class Dawson {
         socket.disconnect()
     }
 
+    private fun startConnectTimer() {
+        if (connectTimerJob != null) return
+        connectTimerJob = CoroutineScope(Dispatchers.Default).launch {
+            while (isActive) {
+                if (!connectionState.value) {
+                    connect(preferences.serverAddress, preferences.serverPort)
+                }
+                delay(1000)
+            }
+        }
+    }
+
     private fun startSyncTimer() {
+        if (syncTimerJob != null) return
         syncTimerJob = CoroutineScope(Dispatchers.Default).launch {
             while (isActive) {
                 println("Syncing app with DAWSON Server")
@@ -117,7 +131,7 @@ class Dawson {
                 fetchProviders()
                 fetchChats()
                 fetchChatMessages()
-                delay(20000L)
+                delay(15000L)
             }
         }
     }
@@ -170,6 +184,7 @@ class Dawson {
 
     fun sendMessage(message: Message, chatUUID: String, dataIndex: Int = 0) {
         _activeChats.value.firstOrNull { it.uuid == chatUUID }?.addPendingMessage(message, dataIndex)
+        _activeChats.update { it.toList() }
         val userData = UserData(message, chatUUID)
         socket.send(userData, UserData::class, USER_DATA)
     }
@@ -299,6 +314,7 @@ class Dawson {
             }
             DataType.SYNC_CHAT -> {
                 data.chatUUID?.let {
+                    println("Synced (1) chat.")
                     val chat = data.payloadAs<Chat>() ?: return
                     upsertChat(chat)
                 } ?: run {
@@ -311,6 +327,7 @@ class Dawson {
                             deleteChat(chat.uuid)
                         }
                     }
+                    println("Synced (${chats.count()}) chats.")
                 }
             }
             DataType.SYNC_CHAT_MESSAGES -> {
@@ -318,12 +335,15 @@ class Dawson {
                 data.chatUUID?.let { chatUUID ->
                     val messages = messageDatas.map { Message(it) }
                     _activeChats.value.firstOrNull { it.uuid == chatUUID }?.syncMessages(messages)
+                    _activeChats.update { it.toList() }
                 } ?: run {
                     messageDatas.groupBy { it.chatUUID }.forEach { (chatUUID, msgDatas) ->
                         val messages = msgDatas.map { Message(it) }
                         _activeChats.value.firstOrNull { it.uuid == chatUUID }?.syncMessages(messages)
                     }
+                    _activeChats.update { it.toList() }
                 }
+                println("Synced (${messageDatas.count()}) messageDatas.")
             }
         }
     }
@@ -377,7 +397,7 @@ class Dawson {
                 (oldAgents + agent)
             } else {
                 val currentTimestamp = oldAgents[index].updatedTimestamp
-                if (currentTimestamp >= agent.updatedTimestamp) return
+                if (currentTimestamp >= agent.updatedTimestamp) return@update oldAgents
 
                 oldAgents.toMutableList().apply {
                     this[index] = oldAgents[index].copy(
@@ -406,7 +426,7 @@ class Dawson {
                 (oldUsers + user)
             } else {
                 val currentTimestamp = oldUsers[index].updatedTimestamp
-                if (currentTimestamp >= user.updatedTimestamp) return
+                if (currentTimestamp >= user.updatedTimestamp) return@update oldUsers
 
                 oldUsers.toMutableList().apply {
                     this[index] = oldUsers[index].copy(
@@ -437,7 +457,7 @@ class Dawson {
                 (oldProviders + provider)
             } else {
                 val currentTimestamp = oldProviders[index].updatedTimestamp
-                if (currentTimestamp >= provider.updatedTimestamp) return
+                if (currentTimestamp >= provider.updatedTimestamp) return@update oldProviders
 
                 oldProviders.toMutableList().apply {
                     this[index] = oldProviders[index].copy(
@@ -458,7 +478,7 @@ class Dawson {
                 (oldChats + chat)
             } else {
                 val currentTimestamp = oldChats[index].updatedTimestamp
-                if (currentTimestamp >= chat.updatedTimestamp) return
+                if (currentTimestamp >= chat.updatedTimestamp) return@update oldChats
 
                 oldChats.toMutableList().apply {
                     this[index] = oldChats[index].copy(

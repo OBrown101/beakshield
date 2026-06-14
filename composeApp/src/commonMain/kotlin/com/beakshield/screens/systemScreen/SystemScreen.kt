@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.beakshield.BeakShieldApp.Companion.dawson
+import com.beakshield.BeakShieldApp.dawson
 import com.beakshield.composables.BasicBox
 import com.beakshield.dawsonGold
 import com.beakshield.screens.Destination

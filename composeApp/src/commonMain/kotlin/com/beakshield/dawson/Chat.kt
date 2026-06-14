@@ -87,7 +87,7 @@ data class Chat(
                     val currentTimestamp = updated[idx].updatedTimestamp
                     if (currentTimestamp < msg.updatedTimestamp) {
                         updated[idx] = updated[idx].copy(
-                            uuid = uuid,
+                            uuid = msg.uuid,
                             chunks = msg.chunks.toMutableMap(),
                             updatedTimestamp = msg.updatedTimestamp
                         )

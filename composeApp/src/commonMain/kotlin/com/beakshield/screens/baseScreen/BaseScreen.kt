@@ -22,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -105,9 +106,11 @@ fun MainBase(
     navToScreen: (Destination) -> Unit = {},
     content: @Composable (Modifier) -> Unit = {}
 ) {
+    val railContent by curDestination.railContent.collectAsState()
     val defaultNavWidth = 210
     var navWidth by remember { mutableStateOf(defaultNavWidth) }
     val scrollState = rememberScrollState()
+    val scrollModifier = railContent?.let { Modifier } ?: Modifier.verticalScroll(scrollState)
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -153,7 +156,7 @@ fun MainBase(
                     modifier = Modifier
                         .height(800.dp)
                         .align(Alignment.TopStart)
-                        .verticalScroll(scrollState)
+                        .then(scrollModifier)
                 ) {
                     Image(
                         modifier = Modifier
@@ -166,9 +169,9 @@ fun MainBase(
                         contentDescription = "",
                         contentScale = ContentScale.FillHeight
                     )
-                    curDestination.railContent.value?.let { railContent ->
-                        val rContent = railContent.content ?: return@let
-                        navWidth = railContent.width
+                    railContent?.let { rc ->
+                        val rContent = rc.content ?: return@let
+                        navWidth = rc.width
                         rContent(Modifier)
                     } ?: run {
                         navWidth = defaultNavWidth

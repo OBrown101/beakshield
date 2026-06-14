@@ -1,7 +1,7 @@
 package com.beakshield.viewModels
 
-import com.beakshield.BeakShieldApp.Companion.dawson
-import com.beakshield.BeakShieldApp.Companion.preferences
+import com.beakshield.BeakShieldApp.dawson
+import com.beakshield.BeakShieldApp.preferences
 import com.beakshield.dawson.Provider
 import com.beakshield.dawson.Server
 import com.beakshield.tablecells.ProviderCellViewModel

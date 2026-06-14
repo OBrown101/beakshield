@@ -39,6 +39,16 @@ data class Message(
         TOOL_CALL_RESULT,
         DATA_PROMPT;
 
+        val label: String
+            get() = when (this) {
+                TEXT_PROMPT -> "Text Prompt"
+                TEXT_THINKING -> "Thinking"
+                TEXT_RESPONSE -> "Response"
+                TOOL_CALL_NAME -> "Tool Call"
+                TOOL_CALL_RESULT -> "Tool Result"
+                DATA_PROMPT -> "Data Prompt"
+            }
+
         fun getStreamUUID(uuid: String): String {
             return "${uuid}_${this.name}"
         }

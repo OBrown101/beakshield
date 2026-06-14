@@ -22,7 +22,7 @@ fun main() = application {
         resizable = true,
         state = windowState
     ) {
-        window.minimumSize = Dimension(1000, 950)
+        window.minimumSize = Dimension(900, 950)
 
         App()
     }

@@ -31,6 +31,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -205,6 +207,7 @@ fun ChatView(
         }
 
         UserInputBar(
+            modifier = Modifier,
             value = userInput,
             onValueChange = { userInput = it },
             placeholder = "Ask agent anything...",
@@ -441,12 +444,7 @@ private fun MessageSegment(
     val scope = rememberCoroutineScope()
     val fontSize = 14
     val lineHeight = 17
-    val text = when (message.type) {
-        TEXT_THINKING -> {
-            "… (thinking…)".takeIf { message.chunks.isEmpty() } ?: message.chunks.entries.sortedBy { it.key }.joinToString("") { it.value }
-        }
-        else -> message.chunks.entries.sortedBy { it.key }.joinToString("") { it.value }
-    }
+    val text = message.chunks.entries.sortedBy { it.key }.joinToString("") { it.value }
 
     val fontWeight = when (message.type) {
         TEXT_PROMPT -> FontWeight.Normal
@@ -465,7 +463,25 @@ private fun MessageSegment(
     }
 
     when (message.type) {
-        TOOL_CALL_NAME, TOOL_CALL_RESULT, TEXT_PROMPT -> {
+        TEXT_THINKING -> {
+            CollapsibleMessageSegment(
+                title = message.type.label,
+                text = text,
+                fontSize = fontSize,
+                lineHeight = lineHeight,
+                color = textSecondaryColor
+            )
+        }
+        TOOL_CALL_NAME, TOOL_CALL_RESULT -> {
+            CollapsibleMessageSegment(
+                title = message.type.label,
+                text = text,
+                fontSize = fontSize,
+                lineHeight = lineHeight,
+                color = color
+            )
+        }
+        TEXT_PROMPT -> {
             Text(
                 modifier = Modifier,
                 text = text,
@@ -550,6 +566,57 @@ private fun MessageSegment(
         }
     }
 
+}
+
+@Composable
+private fun CollapsibleMessageSegment(
+    title: String,
+    text: String,
+    fontSize: Int,
+    lineHeight: Int,
+    color: Color
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 8.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                color = color,
+                fontSize = fontSize.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Icon(
+                modifier = Modifier
+                    .padding(start = 4.dp)
+                    .size(18.dp),
+                imageVector = if (expanded) {
+                    Icons.Outlined.KeyboardArrowUp
+                } else {
+                    Icons.Outlined.KeyboardArrowDown
+                },
+                contentDescription = null,
+                tint = color
+            )
+        }
+
+        if (expanded) {
+            Text(
+                modifier = Modifier.padding(top = 4.dp, start = 8.dp),
+                text = text,
+                fontSize = fontSize.sp,
+                lineHeight = lineHeight.sp,
+                color = color,
+                fontWeight = FontWeight.Thin
+            )
+        }
+    }
 }
 
 @Composable

@@ -3,8 +3,8 @@ package com.beakshield.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
-import com.beakshield.BeakShieldApp.Companion.baseScreenViewModel
-import com.beakshield.BeakShieldApp.Companion.dawson
+import com.beakshield.BeakShieldApp.baseScreenViewModel
+import com.beakshield.BeakShieldApp.dawson
 import com.beakshield.dawson.Agent
 import com.beakshield.dawson.Chat
 import com.beakshield.dawson.LLMModel
@@ -40,13 +40,11 @@ class ChatsScreenViewModel : VModel {
     val chatUUIDSelected = _chatUUIDSelected.asStateFlow()
     val allMessages = _chatMessages.asStateFlow()
 
-    val pendingInputRequests = dawson.pendingInputRequests
-
     val currentAgent: StateFlow<Agent?> =
         combine(_chatUUIDSelected, dawson.activeChats, dawson.activeAgents) { chatUUID, chats, agents ->
             val agentUUID = chats.firstOrNull { it.uuid == chatUUID }?.agentUUID
             agents.firstOrNull { it.uuid == agentUUID }
-        }.stateIn(scope, SharingStarted.Lazily, null)
+        }.stateIn(scope, SharingStarted.Eagerly, null)
 
     val groupedMessages: StateFlow<Map<String, List<Message>>> =
         allMessages.map { allMsgs ->
@@ -55,14 +53,14 @@ class ChatsScreenViewModel : VModel {
             }.mapValues { (_, segs) ->
                 segs.sortedBy { it.createdTimestamp }
             }
-        }.stateIn(scope, SharingStarted.Lazily, emptyMap())
+        }.stateIn(scope, SharingStarted.Eagerly, emptyMap())
 
     private val _searchText = MutableStateFlow("")
 
     val chatCellViewModels: StateFlow<List<ChatCellViewModel>> =
         combine(dawson.activeChats, _searchText, _chatUUIDSelected) { chats, searchText, selectedUUID ->
             buildChatCellViewModels(chats, searchText, selectedUUID)
-        }.stateIn(scope, SharingStarted.Lazily, emptyList())
+        }.stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     init {
         setRailContent(width = 340) { modifier ->
