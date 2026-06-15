@@ -1,6 +1,5 @@
 
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -37,16 +36,16 @@ kotlin {
         }
     }
     
-    js {
-        browser()
-        binaries.executable()
-    }
-    
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-        binaries.executable()
-    }
+//    js {
+//        browser()
+//        binaries.executable()
+//    }
+//
+//    @OptIn(ExperimentalWasmDsl::class)
+//    wasmJs {
+//        browser()
+//        binaries.executable()
+//    }
     
     sourceSets {
         androidMain.dependencies {
@@ -54,6 +53,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation("androidx.compose.material3:material3-window-size-class:1.4.0")
             implementation("org.jetbrains.compose.material3.adaptive:adaptive:1.2.0")
+            implementation("io.ktor:ktor-client-okhttp:3.4.2")
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -74,7 +74,6 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.2")
 
-            implementation("io.ktor:ktor-client-cio:3.4.2")
             implementation("io.ktor:ktor-client-core:3.4.2")
             implementation("io.ktor:ktor-client-websockets:3.4.2")
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.2")
@@ -88,6 +87,12 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation("io.ktor:ktor-client-cio:3.4.2")
+            implementation(compose.desktop.currentOs)
+            implementation(libs.kotlinx.coroutinesSwing)
+        }
+        iosMain.dependencies {
+            implementation("io.ktor:ktor-client-darwin:3.4.2")
         }
     }
 }

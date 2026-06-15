@@ -87,7 +87,7 @@ fun SystemScreen(
                             .padding(end = padBetween.dp)
                             .weight(1f),
                         server = currentServer.value,
-                        connected = connectionState.value,
+                        connState = connectionState.value,
                         onManage = {
                             showServerConfig = true
                         },
@@ -114,9 +114,8 @@ fun SystemScreen(
                     .width(425.dp),
                 show = showServerConfig,
                 server = currentServer.value,
-                connected = connectionState.value,
-                onTestConnection = {},
-                onConnect = { systemScreenViewModel.connectToServer(it) },
+                connState = connectionState.value,
+                onConnect = { systemScreenViewModel.saveConnectToServer(it) },
                 onCancel = {
                     showServerConfig = false
                 }

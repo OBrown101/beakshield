@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Dns
@@ -36,19 +37,24 @@ import com.beakshield.composables.BasicRoundedImageBtn
 import com.beakshield.dangerColor
 import com.beakshield.dawson.Server
 import com.beakshield.dawsonRed
-import com.beakshield.lightGreenColor
 import com.beakshield.screens.systemScreen.SystemBox
 import com.beakshield.textColor
+import com.beakshield.websocket.ServerConnState
 
 @Preview
 @Composable
 fun ServerView(
     modifier: Modifier = Modifier,
     server: Server? = Server.MockServer.mockServers[0],
-    connected: Boolean = false,
+    connState: ServerConnState = ServerConnState(),
     onManage: () -> Unit = {},
     onDisconnect: () -> Unit = {}
 ) {
+    val serverText = when (connState.state) {
+        ServerConnState.ConnState.CONNECTED -> "Your kingdom is connected to DAWSON."
+        ServerConnState.ConnState.DISCONNECTED -> "Your kingdom is not connected to DAWSON."
+        ServerConnState.ConnState.ERROR -> "Your kingdom is having difficulty connecting to DAWSON"
+    }
     val btnTextStyle = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontSize = 11.sp,
@@ -73,14 +79,12 @@ fun ServerView(
                     .size(14.dp)
                     .shadow(8.dp, CircleShape)
                     .background(
-                        color = if (connected) lightGreenColor else dangerColor,
+                        color = connState.color,
                         shape = CircleShape
                     )
                     .border(
                         width = 3.dp,
-                        color = if (connected) lightGreenColor.copy(alpha = .18f) else dangerColor.copy(
-                            alpha = .18f
-                        ),
+                        color = connState.color.copy(alpha = .18f),
                         shape = CircleShape
                     )
             )
@@ -88,13 +92,13 @@ fun ServerView(
                 modifier = Modifier.padding(start = 10.dp)
             ) {
                 Text(
-                    text = if (connected) "Connected" else "Disconnected",
-                    color = if (connected) lightGreenColor else dangerColor,
+                    text = connState.message,
+                    color = connState.color,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Normal
                 )
                 Text(
-                    text = if (connected) "Your kingdom is connected to DAWSON." else "Your kingdom is not connected to DAWSON.",
+                    text = serverText,
                     color = textColor.copy(0.8f),
                     fontSize = 9.5.sp
                 )
@@ -118,12 +122,12 @@ fun ServerView(
         ServerInfoRow(
             label = "Latency",
             value = "${server?.latencyMs ?: "---"} ms",
-            valueColor = if (connected) lightGreenColor else textColor
+            valueColor = connState.color
         )
         ServerInfoRow(
             label = "Last Sync",
             value = server?.lastSyncTime?.toString() ?: "---",
-            valueColor = if (connected) lightGreenColor else textColor
+            valueColor = connState.color
         )
 
         Spacer(Modifier.height(22.dp))
@@ -132,10 +136,10 @@ fun ServerView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(btnHeight.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.Center,
         ) {
             BasicRoundedIconBtn(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(155.dp),
                 text = "Manage Connection",
                 textStyle = btnTextStyle,
                 imageVector = Icons.Rounded.Settings,
@@ -146,8 +150,10 @@ fun ServerView(
                 bg = cardColor,
                 onClick = onManage
             )
+            Spacer(modifier = Modifier.width(12.dp))
             BasicRoundedImageBtn(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(120.dp),
+                enabled = false,
                 text = "Disconnect",
                 textStyle = btnTextStyle.copy(color = dangerColor),
                 image = Res.drawable.nav_btn_dawson,

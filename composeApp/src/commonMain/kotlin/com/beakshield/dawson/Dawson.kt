@@ -6,6 +6,7 @@ import com.beakshield.websocket.ChatData
 import com.beakshield.websocket.ChatData.DataType
 import com.beakshield.websocket.ConfigData
 import com.beakshield.websocket.MessageData
+import com.beakshield.websocket.ServerConnState
 import com.beakshield.websocket.UserData
 import com.beakshield.websocket.UserInputRequest
 import com.beakshield.websocket.UserInputResponse
@@ -34,6 +35,9 @@ import kotlin.uuid.Uuid
 class Dawson {
     private val scope = CoroutineScope(Dispatchers.Default)
     private val socket = WebSocketClient()
+
+    val _connectionState = socket.connectionState
+
     val connectionState = socket.connectionState
     private var syncTimerJob: Job? = null
     private var connectTimerJob: Job? = null
@@ -90,19 +94,24 @@ class Dawson {
         }
         scope.launch {
             var prevConn = false
-            connectionState.collect { connected ->
-                if (!prevConn && connected) {
+            connectionState.collect { state ->
+                if (!prevConn && (state.state == ServerConnState.ConnState.CONNECTED)) {
                     startSyncTimer()
                 }
-                prevConn = connected
+                prevConn = (state.state == ServerConnState.ConnState.CONNECTED)
             }
         }
 
         startConnectTimer()
     }
 
-    fun connect(address: String = "localhost", port: Int = 8080) {
-        socket.connect(address, port)
+    fun connect() {
+        socket.connect(
+            preferences.serverAddress,
+            preferences.serverPort,
+            preferences.serverAuthToken,
+            preferences.serverFingerprint
+        )
     }
 
     fun disconnect() {
@@ -113,10 +122,10 @@ class Dawson {
         if (connectTimerJob != null) return
         connectTimerJob = CoroutineScope(Dispatchers.Default).launch {
             while (isActive) {
-                if (!connectionState.value) {
-                    connect(preferences.serverAddress, preferences.serverPort)
+                if (connectionState.value.state != ServerConnState.ConnState.CONNECTED) {
+                    connect()
                 }
-                delay(1000)
+                delay(1500)
             }
         }
     }

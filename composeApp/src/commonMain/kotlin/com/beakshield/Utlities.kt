@@ -1,9 +1,12 @@
 package com.beakshield
 
+import io.ktor.client.HttpClient
 import kotlin.math.round
 
 expect val isJvm: Boolean
 expect suspend fun pickFilePath(): String?
+
+expect fun dawsonHttpClient(expectedCertFingerprint: String): HttpClient
 
 fun Int.formatWithSuffix(): String = when {
     this >= 1_000_000 -> {

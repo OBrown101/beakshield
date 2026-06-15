@@ -37,7 +37,9 @@ class SystemScreenViewModel : VModel {
     init {
         _currentServer.value = Server(
             address = preferences.serverAddress,
-            port = preferences.serverPort
+            port = preferences.serverPort,
+            authKey = preferences.serverAuthToken,
+            fingerprint = preferences.serverFingerprint
         )
     }
 
@@ -60,10 +62,12 @@ class SystemScreenViewModel : VModel {
         dawson.updateProviderAPIKeys(mapOf(type to apiKey))
     }
 
-    fun connectToServer(server: Server) {
+    fun saveConnectToServer(server: Server) {
         _currentServer.value = server
         preferences.serverAddress = server.address
         preferences.serverPort = server.port
-        dawson.connect(server.address, server.port)
+        preferences.serverAuthToken = server.authKey
+        preferences.serverFingerprint = server.fingerprint
+        dawson.connect()
     }
 }

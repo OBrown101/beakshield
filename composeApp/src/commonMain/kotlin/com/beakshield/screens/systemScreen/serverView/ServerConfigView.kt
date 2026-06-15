@@ -1,6 +1,5 @@
 package com.beakshield.screens.systemScreen.serverView
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -20,13 +19,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.Fingerprint
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.SettingsEthernet
-import androidx.compose.material.icons.outlined.WifiTethering
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,14 +51,14 @@ import com.beakshield.borderColor
 import com.beakshield.cardColor
 import com.beakshield.composables.BasicBox
 import com.beakshield.composables.BasicInputField
+import com.beakshield.composables.BasicPasswordInputField
 import com.beakshield.composables.BasicRoundedBtn
 import com.beakshield.composables.BasicRoundedImageBtn
-import com.beakshield.dangerColor
 import com.beakshield.dawson.Server
 import com.beakshield.dawsonGold
-import com.beakshield.lightGreenColor
 import com.beakshield.textColor
 import com.beakshield.textSecondaryColor
+import com.beakshield.websocket.ServerConnState
 
 @Preview
 @Composable
@@ -68,23 +66,31 @@ fun ServerConfigView(
     modifier: Modifier = Modifier,
     show: Boolean = true,
     server: Server? = Server.MockServer.mockServers[0],
-    connected: Boolean = false,
-    onTestConnection: () -> Unit = {},
+    connState: ServerConnState = ServerConnState(),
     onConnect: (Server) -> Unit = {},
     onCancel: () -> Unit = {}
 ) {
     var addressProvided by remember { mutableStateOf(server?.address ?: "") }
     var portProvided by remember { mutableStateOf(server?.port ?: 0) }
+    var authProvided by remember { mutableStateOf(server?.authKey ?: "") }
+    var fingerprintProvided by remember { mutableStateOf(server?.fingerprint ?: "") }
     val scrollState = rememberScrollState()
-    val padBetween = 15
+    val padBetween = 12
 
     if (!show) return
 
     fun connect() {
         val updatedServer = server?.copy(
             address = addressProvided,
-            port = portProvided
-        ) ?: Server(address = addressProvided, port = portProvided)
+            port = portProvided,
+            authKey = authProvided,
+            fingerprint = fingerprintProvided
+        ) ?: Server(
+            address = addressProvided,
+            port = portProvided,
+            authKey = authProvided,
+            fingerprint = fingerprintProvided
+        )
         onConnect(updatedServer)
     }
 
@@ -109,7 +115,7 @@ fun ServerConfigView(
                     titleFontSize = 14,
                     fontSize = 13,
                     value = server?.address ?: "",
-                    placeholder = "e.g. 192.168.1.100 or dawson.local",
+                    placeholder = "e.g. 192.168.1.100 or localhost",
                     icon = Icons.Outlined.Dns,
                     onValueChange = {
                         addressProvided = it
@@ -129,13 +135,33 @@ fun ServerConfigView(
                         }
                     }
                 )
+                BasicPasswordInputField(
+                    modifier = Modifier.padding(bottom = padBetween.dp),
+                    label = "Auth Key",
+                    titleFontSize = 14,
+                    fontSize = 13,
+                    value = server?.authKey ?: "",
+                    placeholder = "SERVER_AUTH_KEY",
+                    icon = Icons.Outlined.Key,
+                    onValueChange = { value ->
+                        authProvided = value
+                    }
+                )
+                BasicPasswordInputField(
+                    modifier = Modifier.padding(bottom = padBetween.dp),
+                    label = "Fingerprint",
+                    titleFontSize = 14,
+                    fontSize = 13,
+                    value = server?.fingerprint ?: "",
+                    placeholder = "SERVER_FINGERPRINT",
+                    icon = Icons.Outlined.Fingerprint,
+                    onValueChange = { value ->
+                        fingerprintProvided = value
+                    }
+                )
                 StatusBox(
                     modifier = Modifier.padding(bottom = padBetween.dp),
-                    connected = connected
-                )
-                TestConnectionBtn(
-                    modifier = Modifier.padding(bottom = (padBetween + 10).dp),
-                    onClick = onTestConnection
+                    connState = connState
                 )
                 Buttons(
                     modifier = Modifier
@@ -246,11 +272,8 @@ private fun Buttons(
 @Composable
 private fun StatusBox(
     modifier: Modifier = Modifier,
-    connected: Boolean
+    connState: ServerConnState
 ) {
-    val statusColor = if (connected) lightGreenColor else dangerColor
-    val statusText = if (connected) "Connected" else "Not Connected"
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -265,47 +288,16 @@ private fun StatusBox(
             Box(
                 modifier = Modifier
                     .size(16.dp)
-                    .background(statusColor, CircleShape)
+                    .background(connState.color, CircleShape)
             )
             Text(
                 modifier = Modifier.padding(start = 16.dp),
                 text = buildAnnotatedString {
-                    withStyle(style = SpanStyle(statusColor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)) { append("$statusText\n") }
-                    withStyle(style = SpanStyle(textSecondaryColor, fontSize = 11.sp, fontWeight = FontWeight.Normal)) { append("Enter server address/port and test connection.") }
+                    withStyle(style = SpanStyle(connState.color, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)) { append("${connState.message}\n") }
+                    withStyle(style = SpanStyle(textSecondaryColor, fontSize = 11.sp, fontWeight = FontWeight.Normal)) { append(connState.description) }
                 },
                 lineHeight = 17.sp
             )
         }
-    }
-}
-
-@Composable
-private fun TestConnectionBtn(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    OutlinedButton(
-        modifier = modifier,
-        onClick = onClick,
-        shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, dawsonGold.copy(alpha = 0.75f)),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.Transparent
-        )
-    ) {
-        Icon(
-            modifier = Modifier.size(25.dp),
-            imageVector = Icons.Outlined.WifiTethering,
-            contentDescription = null,
-            tint = dawsonGold
-        )
-        Text(
-            modifier = Modifier.padding(start = 10.dp),
-            text = buildAnnotatedString {
-                withStyle(style = SpanStyle(dawsonGold, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)) { append("Test Connection\n") }
-                withStyle(style = SpanStyle(textSecondaryColor, fontSize = 11.sp, fontWeight = FontWeight.Normal)) { append("Check if the server is reachable.") }
-            },
-            lineHeight = 17.sp
-        )
     }
 }
