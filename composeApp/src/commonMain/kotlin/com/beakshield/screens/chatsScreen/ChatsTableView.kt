@@ -27,6 +27,7 @@ import com.beakshield.cardColor
 import com.beakshield.composables.TableView
 import com.beakshield.dawsonGold
 import com.beakshield.dawsonRed
+import com.beakshield.formatTimestamp
 import com.beakshield.primaryColor
 import com.beakshield.tablecells.ChatCellViewModel
 import com.beakshield.textColor
@@ -85,7 +86,7 @@ fun ChatTableCell(
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(42.dp)
                 .clip(CircleShape)
                 .background(cardColor)
                 .border(
@@ -119,13 +120,13 @@ fun ChatTableCell(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            Text(
+                modifier = Modifier.align(Alignment.End),
+                text = formatTimestamp(cellViewModel.chat.messages.value.lastOrNull()?.createdTimestamp) ?: "---",
+                color = textMutedColor,
+                fontSize = 12.sp,
+                maxLines = 1
+            )
         }
-
-        Text(
-            text = cellViewModel.formattedLastTimestamp(cellViewModel.chat.messages.value.lastOrNull()?.createdTimestamp),
-            color = textMutedColor,
-            fontSize = 12.sp,
-            maxLines = 1
-        )
     }
 }

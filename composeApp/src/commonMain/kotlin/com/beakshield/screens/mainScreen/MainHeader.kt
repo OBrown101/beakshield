@@ -66,7 +66,8 @@ fun MainBg() {
 fun MainHeader(
     modifier: Modifier = Modifier,
     title: String = "Good Evening, Ethan",
-    statusText: String = "I've been monitoring your systems today\nEverything appears to be running smoothly."
+    statusText: String = "I've been monitoring your systems today\nEverything appears to be running smoothly.",
+    onStartChat: () -> Unit
 ) {
     val btnTextStyle = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -153,7 +154,8 @@ fun MainHeader(
                     imageHeight = imageHeight,
                     color = Color.White,
                     borderColor = dawsonDarkRed,
-                    bg = dawsonRed
+                    bg = dawsonRed,
+                    onClick = onStartChat
                 )
                 BasicRoundedIconBtn(
                     modifier = Modifier.width(btnWidth.dp),

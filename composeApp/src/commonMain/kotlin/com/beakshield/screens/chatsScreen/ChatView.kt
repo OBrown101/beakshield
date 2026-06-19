@@ -1,12 +1,10 @@
 package com.beakshield.screens.chatsScreen
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,10 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -29,15 +27,18 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,22 +48,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import beakshield.composeapp.generated.resources.Res
-import beakshield.composeapp.generated.resources.user_profile
 import com.beakshield.borderColor
 import com.beakshield.cardColor
+import com.beakshield.composables.SquareRoundedIconBtn
 import com.beakshield.dangerColor
 import com.beakshield.dawson.Agent
 import com.beakshield.dawson.Message
@@ -76,6 +77,8 @@ import com.beakshield.dawsonGold
 import com.beakshield.dawsonNavy
 import com.beakshield.dawsonRed
 import com.beakshield.elevatedSurfaceColor
+import com.beakshield.formatTimestamp
+import com.beakshield.infoColor
 import com.beakshield.isJvm
 import com.beakshield.pickFilePath
 import com.beakshield.primaryColor
@@ -84,10 +87,12 @@ import com.beakshield.textSecondaryColor
 import com.beakshield.websocket.UserInputRequest
 import com.beakshield.websocket.UserInputResponse
 import com.mikepenz.markdown.compose.Markdown
+import com.mikepenz.markdown.compose.components.markdownComponents
+import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeBlock
+import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeFence
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.painterResource
 
 
 @Composable
@@ -106,16 +111,10 @@ fun ChatView(
     val pendingRequest = pendingInputRequests.firstOrNull { it.agentUUID == agent.uuid && it.userUUID == userUUIDSelected }
     var userInput by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
-    var autoScrollEnabled by remember { mutableStateOf(true) }
 
     fun attachDirectory() {
         scope.launch {
-            val path = if (isJvm) {
-                pickFilePath()
-            } else {
-                userInput.trim().takeIf { it.isNotEmpty() }
-            }
-
+            val path = if (isJvm) pickFilePath() else userInput.trim().takeIf { it.isNotEmpty() }
             path?.let {
                 onAttachClick(it)
             }
@@ -137,32 +136,6 @@ fun ChatView(
         }
     }
 
-    fun isAtBottom(): Boolean {
-        val layoutInfo = listState.layoutInfo
-        val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull() ?: return true
-
-        return lastVisibleItem.index >= layoutInfo.totalItemsCount - 1 &&
-                lastVisibleItem.offset + lastVisibleItem.size <= layoutInfo.viewportEndOffset + 48
-    }
-
-    val contentVersion = groupedMessages.values.sumOf { messages ->
-        messages.sumOf { message ->
-            message.chunks.values.sumOf { it.length }
-        }
-    }
-
-    LaunchedEffect(listState.isScrollInProgress) {
-        if (listState.isScrollInProgress) {
-            autoScrollEnabled = isAtBottom()
-        }
-    }
-
-    LaunchedEffect(contentVersion, groupedMessages.size) {
-        if (autoScrollEnabled && groupedMessages.isNotEmpty()) {
-            listState.scrollToItem(groupedMessages.size - 1)
-        }
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -174,17 +147,16 @@ fun ChatView(
                 .weight(1f)
                 .fillMaxWidth(),
             state = listState,
-            verticalArrangement = Arrangement.spacedBy(26.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             items(
                 items = groupedMessages.entries.toList(),
-                key = { it.key}
-            ) { entry ->
+                key = { (groupKey, _) -> groupKey }
+            ) { (_, messages) ->
                 ChatBubbleRow(
-                    agent = agent,
-                    isUser = (entry.value.firstOrNull()?.sourceUUID == userUUIDSelected),
-                    messages = entry.value
+                    isUser = (messages.firstOrNull()?.sourceUUID == userUUIDSelected),
+                    messages = messages
                 )
             }
         }
@@ -223,143 +195,24 @@ fun ChatView(
 }
 
 @Composable
-private fun PendingInputRequestSegment(
-    request: UserInputRequest,
-    onApprove: () -> Unit,
-    onDeny: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(dawsonNavy)
-            .border(
-                width = 1.dp,
-                color = dawsonGold.copy(alpha = 0.7f),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .padding(16.dp)
-    ) {
-        Text(
-            text = request.type.name.lowercase().replaceFirstChar { it.uppercase() },
-            color = dawsonGold,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Text(
-            modifier = Modifier.padding(top = 6.dp),
-            text = request.prompt,
-            color = textPrimaryColor,
-            fontSize = 14.sp,
-            lineHeight = 18.sp
-        )
-
-        if (request.type == UserInputRequest.ReqType.PERMISSION) {
-            Row(
-                modifier = Modifier.padding(top = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                PendingRequestButton(
-                    text = "Approve",
-                    onClick = onApprove
-                )
-
-                PendingRequestButton(
-                    text = "Deny",
-                    onClick = onDeny
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PendingRequestButton(
-    text: String,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(cardColor)
-            .border(
-                width = 1.dp,
-                color = borderColor.copy(alpha = 0.85f),
-                shape = RoundedCornerShape(12.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            color = textPrimaryColor,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
-@Composable
 private fun ChatBubbleRow(
-    agent: Agent,
     isUser: Boolean,
     messages: List<Message>
 ) {
-    val avatarSize = 58
+    val rowPad = 40
+    val paddingModifier = Modifier.padding(start = (if (isUser) rowPad.dp else 0.dp), end = (if (!isUser) rowPad.dp else 0.dp))
 
-    Row(
+    Box(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.Top
+        contentAlignment = if (isUser) Alignment.TopEnd else Alignment.TopStart,
     ) {
-        if (!isUser) {
-            ChatAvatar(
-                painter = painterResource(agent.type.image),
-                size = avatarSize
-            )
-            Spacer(Modifier.width(18.dp))
-        }
-
         ChatBubble(
-            modifier = Modifier.widthIn(min = 120.dp, max = 760.dp),
+            modifier = Modifier
+                .then(paddingModifier),
             isUser = isUser,
             messages = messages
         )
-
-        if (isUser) {
-            Spacer(Modifier.width(18.dp))
-
-            ChatAvatar(
-                painter = painterResource(Res.drawable.user_profile),
-                size = avatarSize
-            )
-        }
     }
-}
-
-@Composable
-private fun ChatAvatar(
-    painter: Painter,
-    size: Int
-) {
-
-    Image(
-        modifier = Modifier
-            .size(size.dp)
-            .clip(CircleShape)
-            .border(
-                width = 2.dp,
-                color = dawsonGold,
-                shape = CircleShape
-            )
-            .background(Color.Black),
-        painter = painter,
-        alignment = Alignment.Center,
-        contentDescription = null,
-        contentScale = ContentScale.Fit
-    )
 }
 
 @Composable
@@ -393,9 +246,13 @@ private fun ChatBubble(
             )
             .padding(horizontal = 28.dp, vertical = 22.dp)
     ) {
-        Column {
+        Column(
+            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
+        ) {
             SelectionContainer {
-                Column {
+                Column(
+                    horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
+                ) {
                     messages.forEachIndexed { index, message ->
                         if (index > 0) {
                             Spacer(Modifier.height(8.dp))
@@ -406,30 +263,27 @@ private fun ChatBubble(
                     }
                 }
             }
-
             Spacer(Modifier.height(10.dp))
-
             Row(
-                modifier = Modifier.align(Alignment.End),
+                modifier = Modifier.align(if (isUser) Alignment.Start else Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = messages.maxOfOrNull { it.createdTimestamp }?.toString() ?: "",
+                    text = formatTimestamp(messages.maxOfOrNull { it.createdTimestamp }) ?: "",
                     color = textSecondaryColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
 
-//                if (isUser && message.delivered) {
-//                    Spacer(Modifier.width(8.dp))
-//
-//                    Icon(
-//                        imageVector = Icons.Outlined.Check,
-//                        contentDescription = "Delivered",
-//                        tint = infoColor,
-//                        modifier = Modifier.size(18.dp)
-//                    )
-//                }
+                if (isUser && messages.any { it.delivered }) {
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        modifier = Modifier.size(18.dp),
+                        imageVector = Icons.Outlined.Check,
+                        contentDescription = "Delivered",
+                        tint = infoColor
+                    )
+                }
             }
         }
     }
@@ -482,86 +336,109 @@ private fun MessageSegment(
             )
         }
         TEXT_PROMPT -> {
-            Text(
-                modifier = Modifier,
-                text = text,
-                fontSize = fontSize.sp,
-                lineHeight = lineHeight.sp,
-                color = color,
-                fontWeight = fontWeight,
-            )
+            CollapsibleBubbleContent {
+                Text(
+                    modifier = Modifier,
+                    text = text,
+                    fontSize = fontSize.sp,
+                    lineHeight = lineHeight.sp,
+                    color = color,
+                    fontWeight = fontWeight,
+                )
+            }
         }
         DATA_PROMPT -> TODO()
         else -> {
-            Box {
-                Markdown(
-                    modifier = Modifier.fillMaxWidth(),
-                    content = text,
-                    colors = markdownColor(
-                        text = textPrimaryColor,
-                        codeBackground = dawsonNavy,
-                        inlineCodeBackground = dawsonNavy,
-                        dividerColor = borderColor,
-                        tableBackground = elevatedSurfaceColor
-                    ),
-                    typography = markdownTypography(
-                        text = TextStyle(
-                            fontSize = 12.sp,
-                            lineHeight = 18.sp,
-                            color = textPrimaryColor,
-                            fontWeight = FontWeight.Normal
+            CollapsibleBubbleContent(
+                enabled = !message.isStream
+            ) {
+                Box {
+                    Markdown(
+                        modifier = Modifier.padding(end = 18.dp),
+                        content = text,
+                        components = markdownComponents(
+                            codeBlock = {
+                                MarkdownHighlightedCodeBlock(
+                                    content = it.content,
+                                    node = it.node,
+                                    showHeader = true
+                                )
+                            },
+                            codeFence = {
+                                MarkdownHighlightedCodeFence(
+                                    content = it.content,
+                                    node = it.node,
+                                    showHeader = true
+                                )
+                            }
                         ),
-                        code = TextStyle(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 11.sp,
-                            lineHeight = 16.sp,
-                            color = textPrimaryColor
+                        colors = markdownColor(
+                            text = textPrimaryColor,
+                            codeBackground = dawsonNavy,
+                            inlineCodeBackground = dawsonNavy,
+                            dividerColor = borderColor,
+                            tableBackground = elevatedSurfaceColor
                         ),
-                        inlineCode = TextStyle(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = dawsonGold
-                        ),
-                        h1 = TextStyle(
-                            fontSize = 20.sp,
-                            lineHeight = 26.sp,
-                            color = textPrimaryColor,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        h2 = TextStyle(
-                            fontSize = 17.sp,
-                            lineHeight = 23.sp,
-                            color = textPrimaryColor,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        h3 = TextStyle(
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
-                            color = textPrimaryColor,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        quote = TextStyle(
-                            fontSize = 12.sp,
-                            lineHeight = 18.sp,
-                            color = textSecondaryColor,
-                            fontStyle = FontStyle.Italic
+                        typography = markdownTypography(
+                            text = TextStyle(
+                                fontSize = 14.sp,
+                                lineHeight = 18.sp,
+                                color = textPrimaryColor,
+                                fontWeight = FontWeight.Normal
+                            ),
+                            code = TextStyle(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 13.sp,
+                                lineHeight = 17.sp,
+                                color = textPrimaryColor
+                            ),
+                            inlineCode = TextStyle(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 13.sp,
+                                lineHeight = 17.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = dawsonGold
+                            ),
+                            h1 = TextStyle(
+                                fontSize = 18.sp,
+                                lineHeight = 24.sp,
+                                color = textPrimaryColor,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            h2 = TextStyle(
+                                fontSize = 16.sp,
+                                lineHeight = 22.sp,
+                                color = textPrimaryColor,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            h3 = TextStyle(
+                                fontSize = 15.sp,
+                                lineHeight = 20.sp,
+                                color = textPrimaryColor,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            quote = TextStyle(
+                                fontSize = 14.sp,
+                                lineHeight = 18.sp,
+                                color = textSecondaryColor,
+                                fontStyle = FontStyle.Italic
+                            )
                         )
                     )
-                )
-                Icon(
-                    imageVector = Icons.Outlined.ContentCopy,
-                    contentDescription = "Copy",
-                    tint = textSecondaryColor,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .size(18.dp)
-                        .clickable {
-                            scope.launch {
-                                clipboardManager.setText(AnnotatedString(text))
-                            }
-                        }
-                )
+                    Icon(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(13.dp)
+                            .clickable {
+                                scope.launch {
+                                    clipboardManager.setText(AnnotatedString(text))
+                                }
+                            },
+                        imageVector = Icons.Outlined.ContentCopy,
+                        contentDescription = "Copy",
+                        tint = textSecondaryColor
+                    )
+                }
             }
         }
     }
@@ -620,6 +497,90 @@ private fun CollapsibleMessageSegment(
 }
 
 @Composable
+fun CollapsibleBubbleContent(
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    collapsedHeight: Dp = 200.dp,
+    content: @Composable () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    /* Note: Tried using onGloballyPositioned, kept having jumpy behavior with scrolling main scrolling.
+             AI recommended utilizing this (working) setup with SubcomposeLayout. */
+
+    Box(modifier = modifier) {
+        SubcomposeLayout(
+            modifier = Modifier.clipToBounds()
+        ) { constraints ->
+
+            val collapsedHeightPx = collapsedHeight.roundToPx()
+
+            val contentPlaceable = subcompose("content") {
+                content()
+            }.first().measure(constraints)
+
+            val canCollapse = enabled && contentPlaceable.height > collapsedHeightPx
+
+            val layoutHeight = if (!expanded && canCollapse) {
+                collapsedHeightPx
+            } else {
+                contentPlaceable.height
+            }
+
+            layout(contentPlaceable.width, layoutHeight) {
+                contentPlaceable.place(0, 0)
+            }
+        }
+
+        SubcomposeLayout(
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) { constraints ->
+
+            val collapsedHeightPx = collapsedHeight.roundToPx()
+
+            val contentPlaceable = subcompose("measure") {
+                content()
+            }.first().measure(constraints)
+
+            val canCollapse = enabled && contentPlaceable.height > collapsedHeightPx
+
+            if (!canCollapse) {
+                layout(0, 0) {}
+            } else {
+                val buttonPlaceable = subcompose("button") {
+                    Box(
+                        modifier = Modifier
+                            .offset(y = 12.dp)
+                            .background(
+                                color = dawsonGold.copy(alpha = 0.8f),
+                                shape = CircleShape
+                            )
+                    ) {
+                        IconButton(
+                            modifier = Modifier.size(26.dp),
+                            onClick = { expanded = !expanded }
+                        ) {
+                            Icon(
+                                imageVector = if (expanded) {
+                                    Icons.Default.Remove
+                                } else {
+                                    Icons.Default.Add
+                                },
+                                contentDescription = null
+                            )
+                        }
+                    }
+                }.first().measure(constraints)
+
+                layout(buttonPlaceable.width, buttonPlaceable.height) {
+                    buttonPlaceable.place(0, 0)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun UserInputBar(
     modifier: Modifier = Modifier,
     value: String,
@@ -653,34 +614,39 @@ fun UserInputBar(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            UserInputBtn(
+
+            SquareRoundedIconBtn(
+                modifier = Modifier,
                 btnSize = btnSize,
-                onClick = onAttachClick
+                bgColor = cardColor,
+                borderColor = borderColor.copy(alpha = 0.85f),
+                onClick = onAttachClick,
             ) {
                 Icon(
+                    modifier = Modifier.size(btnIconSize.dp),
                     imageVector = Icons.Outlined.AttachFile,
-                    contentDescription = "Attach file",
-                    tint = textPrimaryColor,
-                    modifier = Modifier.size(btnIconSize.dp)
+                    contentDescription = "",
+                    tint = textPrimaryColor
                 )
             }
-
             Spacer(Modifier.width(12.dp))
-
-            UserInputBtn(
+            SquareRoundedIconBtn(
+                modifier = Modifier,
                 btnSize = btnSize,
-                onClick = onMicClick
+                bgColor = cardColor,
+                borderColor = borderColor.copy(alpha = 0.85f),
+                enabled = false,    // TODO
+                onClick = onMicClick,
             ) {
                 Icon(
+                    modifier = Modifier.size(btnIconSize.dp),
                     imageVector = Icons.Outlined.Mic,
                     contentDescription = "Voice input",
-                    tint = textPrimaryColor,
-                    modifier = Modifier.size(btnIconSize.dp)
+                    tint = textPrimaryColor
                 )
             }
 
             Spacer(Modifier.width(20.dp))
-
             BasicTextField(
                 modifier = Modifier
                     .weight(1f)
@@ -725,30 +691,21 @@ fun UserInputBar(
                     }
                 }
             )
-
             Spacer(Modifier.width(20.dp))
 
-            Box(
-                modifier = Modifier
-                    .size(btnSize.dp)
-                    .clip(buttonShape)
-                    .background(dawsonRed)
-                    .border(
-                        width = 1.dp,
-                        color = dangerColor.copy(alpha = 0.35f),
-                        shape = buttonShape
-                    )
-                    .clickable(
-                        enabled = value.isNotBlank(),
-                        onClick = onSendClick
-                    ),
-                contentAlignment = Alignment.Center
+            SquareRoundedIconBtn(
+                modifier = Modifier,
+                btnSize = btnSize,
+                bgColor = dawsonRed,
+                borderColor = dangerColor.copy(alpha = 0.35f),
+                enabled = value.isNotBlank(),
+                onClick = onSendClick,
             ) {
                 Icon(
+                    modifier = Modifier.size(btnIconSize.dp),
                     imageVector = Icons.AutoMirrored.Outlined.Send,
-                    contentDescription = "Send",
-                    tint = textPrimaryColor,
-                    modifier = Modifier.size(btnIconSize.dp)
+                    contentDescription = "",
+                    tint = textPrimaryColor
                 )
             }
         }
@@ -761,28 +718,4 @@ fun UserInputBar(
             fontWeight = FontWeight.Normal
         )
     }
-}
-
-@Composable
-private fun UserInputBtn(
-    btnSize: Int,
-    onClick: () -> Unit,
-    content: @Composable BoxScope.() -> Unit
-) {
-    val shape = RoundedCornerShape(14.dp)
-
-    Box(
-        modifier = Modifier
-            .size(btnSize.dp)
-            .clip(shape)
-            .background(cardColor)
-            .border(
-                width = 1.dp,
-                color = borderColor.copy(alpha = 0.85f),
-                shape = shape
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-        content = content
-    )
 }

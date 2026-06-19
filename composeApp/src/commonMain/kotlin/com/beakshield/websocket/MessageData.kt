@@ -12,6 +12,7 @@ data class MessageData(
     val runUUID: String,
     val timestamp: Long,
     val chatUUID: String? = null,
+    val sourceType: SourceType,
     val sourceUUID: String,
     val destinationUUID: String,
     val dataType: DataType,
@@ -21,6 +22,11 @@ data class MessageData(
     enum class DataType {
         TEXT,
         DATA;
+    }
+
+    enum class SourceType {
+        PROMPT,
+        RESPONSE;
     }
 
     @OptIn(InternalSerializationApi::class)

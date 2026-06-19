@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.beakshield.BeakShieldApp.chatsScreenViewModel
 import com.beakshield.screens.Destination
 import com.beakshield.viewModels.MainScreenViewModel
 
@@ -30,7 +31,11 @@ fun MainScreen(
             modifier = Modifier.padding(top = 265.dp)
         ) {
             MainHeader(
-                modifier = Modifier
+                modifier = Modifier,
+                onStartChat = {
+                    navToScreen(Destination.CHATS)
+                    chatsScreenViewModel.startNewChat()
+                }
             )
             DashboardStatus(
                 modifier = Modifier

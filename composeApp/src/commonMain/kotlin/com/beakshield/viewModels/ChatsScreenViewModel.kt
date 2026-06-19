@@ -46,6 +46,14 @@ class ChatsScreenViewModel : VModel {
             agents.firstOrNull { it.uuid == agentUUID }
         }.stateIn(scope, SharingStarted.Eagerly, null)
 
+    val currentTitle: StateFlow<String?> = combine(_chatUUIDSelected, dawson.activeChats) { chatUUID, chats ->
+        chats.firstOrNull { it.uuid == chatUUID }?.title
+    }.stateIn(scope, SharingStarted.Lazily, null)
+
+    val currentSubtitle: StateFlow<String?> = combine(_chatUUIDSelected, dawson.activeChats) { chatUUID, chats ->
+        chats.firstOrNull { it.uuid == chatUUID }?.subtitle
+    }.stateIn(scope, SharingStarted.Lazily, null)
+
     val groupedMessages: StateFlow<Map<String, List<Message>>> =
         allMessages.map { allMsgs ->
             allMsgs.groupBy { msg ->
@@ -76,6 +84,17 @@ class ChatsScreenViewModel : VModel {
                     startNewChat()
                 }
             )
+        }
+
+        scope.launch {
+            dawson.activeChats.collect { chats ->
+                val selectedUUID = _chatUUIDSelected.value
+                val selectedStillExists = chats.any { it.uuid == selectedUUID }
+
+                if ((selectedUUID == null) || !selectedStillExists) {
+                    selectChat(chats.maxByOrNull { it.updatedTimestamp }?.uuid)
+                }
+            }
         }
 
         scope.launch {
@@ -164,6 +183,9 @@ class ChatsScreenViewModel : VModel {
 
     fun selectChat(chatUUID: String?) {
         _chatUUIDSelected.value = chatUUID
+        chatUUID?.let {
+            dawson.fetchChatMessages(it)
+        }
     }
 
     fun startPrimaryChat() {
@@ -192,6 +214,7 @@ class ChatsScreenViewModel : VModel {
             destinationUUID = agentUUID,
             type = msgType,
             chunks = mutableMapOf(0 to text),
+            delivered = false,
             isStream = true
         )
         dawson.sendMessage(message, chatUUID)

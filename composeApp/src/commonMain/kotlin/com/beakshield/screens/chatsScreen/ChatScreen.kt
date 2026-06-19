@@ -23,8 +23,9 @@ fun ChatsScreen(
     val userUUIDSelected by dawson.currentUserUUID.collectAsState()
     val chatUUIDSelected by chatsScreenViewModel.chatUUIDSelected.collectAsState()
     val groupedMessages by chatsScreenViewModel.groupedMessages.collectAsState()
-    val chats by dawson.activeChats.collectAsState()
     val currentAgent by chatsScreenViewModel.currentAgent.collectAsState()
+    val currentTitle by chatsScreenViewModel.currentTitle.collectAsState()
+    val currentSubtitle by chatsScreenViewModel.currentSubtitle.collectAsState()
     val pendingRequests by dawson.pendingInputRequests.collectAsState()
 
     Box(
@@ -33,34 +34,36 @@ fun ChatsScreen(
             .background(Color.Transparent),
         contentAlignment = Alignment.TopCenter
     ) {
-        Column() {
-            ProfileView(
-                modifier = Modifier,
-                agent = currentAgent,
-                title = chats.firstOrNull { it.uuid == chatUUIDSelected }?.title ?: "---",
-                subtitle = chats.firstOrNull { it.uuid == chatUUIDSelected }?.subtitle ?: "---",
-                onTitleChange = { chatsScreenViewModel.setTitle(it) },
-                onModeClick = { chatsScreenViewModel.setMode(it) },
-                onModelClick = { chatsScreenViewModel.setModel(it) },
-                onContextClick = {}
-            )
-            userUUIDSelected?.let { userUUID ->
-                currentAgent?.let { agent ->
-                    ChatView(
-                        modifier = Modifier,
-                        agent = agent,
-                        groupedMessages = groupedMessages,
-                        pendingInputRequests = pendingRequests,
-                        userUUIDSelected = userUUID,
-                        onSendMessage = { chatsScreenViewModel.sendTextPrompt(it) },
-                        onRespondToRequest = { response ->
-                            dawson.respondToRequest(response)
-                        },
-                        onAttachClick = {
-                            chatsScreenViewModel.addDirectories(it)
-                        },
-                        onMicClick = {}
-                    )
+        if (chatUUIDSelected != null) {
+            Column() {
+                ProfileView(
+                    modifier = Modifier,
+                    agent = currentAgent,
+                    title = currentTitle?.ifBlank { null } ?: "---",
+                    subtitle = currentSubtitle?.ifBlank { null } ?: "---",
+                    onTitleChange = { chatsScreenViewModel.setTitle(it) },
+                    onModeClick = { chatsScreenViewModel.setMode(it) },
+                    onModelClick = { chatsScreenViewModel.setModel(it) },
+                    onContextClick = {}
+                )
+                userUUIDSelected?.let { userUUID ->
+                    currentAgent?.let { agent ->
+                        ChatView(
+                            modifier = Modifier,
+                            agent = agent,
+                            groupedMessages = groupedMessages,
+                            pendingInputRequests = pendingRequests,
+                            userUUIDSelected = userUUID,
+                            onSendMessage = { chatsScreenViewModel.sendTextPrompt(it) },
+                            onRespondToRequest = { response ->
+                                dawson.respondToRequest(response)
+                            },
+                            onAttachClick = {
+                                chatsScreenViewModel.addDirectories(it)
+                            },
+                            onMicClick = {}
+                        )
+                    }
                 }
             }
         }

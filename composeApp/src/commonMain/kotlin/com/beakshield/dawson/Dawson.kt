@@ -72,6 +72,11 @@ class Dawson {
                     PONG -> {
                         println("Server pong")
                     }
+                    USER_DATA -> {
+                        packet.payloadAs<UserData>()?.let {
+                            handleUserData(it)
+                        }
+                    }
                     AGENT_DATA -> {
                         packet.payloadAs<AgentData>()?.let {
                             handleAgentData(it)
@@ -139,7 +144,7 @@ class Dawson {
                 fetchUsers()
                 fetchProviders()
                 fetchChats()
-                fetchChatMessages()
+                fetchAllChatMessages()  // Need to replace with polling for changes
                 delay(15000L)
             }
         }
@@ -238,6 +243,29 @@ class Dawson {
         socket.send(configData, ConfigData::class, CONFIG_DATA)
     }
 
+    fun fetchChatMessages(chatUUID: String) {
+        val userUUID = _currentUserUUID.value ?: return
+        val chatData = ChatData(
+            chatUUID = chatUUID,
+            userUUID = userUUID,
+            agentUUID = null,
+            dataType = DataType.SYNC_CHAT_MESSAGES,
+            payload = JsonNull
+        )
+        socket.send(chatData, ChatData::class, CHAT_DATA)
+    }
+
+    private fun handleUserData(data: UserData) {
+        println("handleUserData: ${data.dataType}")
+        when (data.dataType) {
+            UserData.DataType.TEXT_PROMPT -> {
+                val uuid = Message.MsgType.TEXT_PROMPT.getStreamUUID(data.dataUUID)
+                _activeChats.value.firstOrNull { it.agentUUID == data.agentUUID }?.setDelivered(uuid)
+            }
+            else -> {}
+        }
+    }
+
     @OptIn(ExperimentalUuidApi::class)
     private fun handleAgentData(data: AgentData) {
         when (data.dataType) {
@@ -293,7 +321,7 @@ class Dawson {
                     sourceUUID = data.agentUUID,
                     destinationUUID = data.userUUID,
                     type = msgType,
-                    chunks = mutableMapOf(0 to "\n## TOOL RESULT: ${text.take(20)} ##\n"),
+                    chunks = mutableMapOf(0 to "\n## TOOL RESULT: ${text.take(100)} ${if (text.take(120).count() < text.count()) "..." else ""}} ##\n"),
                     isStream = true
                 )
                 _activeChats.value.firstOrNull { it.agentUUID == data.agentUUID }?.addPendingMessage(newMessage, data.dataIndex)
@@ -544,7 +572,7 @@ class Dawson {
         socket.send(chatData, ChatData::class, CHAT_DATA)
     }
 
-    private fun fetchChatMessages() {
+    private fun fetchAllChatMessages() {
         val userUUID = _currentUserUUID.value ?: return
         val chatData = ChatData(
             chatUUID = null,

@@ -70,8 +70,9 @@ kotlin {
             implementation("com.russhwolf:multiplatform-settings-no-arg:1.3.0")
 
             implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.41.0")
+            implementation("com.mikepenz:multiplatform-markdown-renderer-code:0.41.0")
             implementation("org.jetbrains.compose.material:material-icons-extended")
-            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.2")
 
             implementation("io.ktor:ktor-client-core:3.4.2")

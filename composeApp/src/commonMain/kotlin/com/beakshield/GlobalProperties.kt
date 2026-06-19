@@ -26,9 +26,3 @@ val textMutedColor = Color(0xFFA09F9C)
 val infoColor = Color(0xFF68A7FF)
 val warningColor = Color(0xFFCE9044)
 val dangerColor = Color(0xFFD65A5A)
-
-const val dateTimeFormat = "yyyy-MM-dd HH:mm:ss"
-const val dateFormat = "MM/dd/yyyy"
-const val dayMonthFormat = "MMM d"
-const val timeFormat = "h:mm a"
-const val weekdayFormat = "EEEE"

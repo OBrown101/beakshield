@@ -23,6 +23,18 @@ data class Chat(
     @Transient private val _messages = MutableStateFlow<List<Message>>(emptyList())
     @Transient val messages = _messages.asStateFlow()
 
+    fun setDelivered(msgUUID: String) {
+        _messages.update { messages ->
+            messages.map { msg ->
+                if (msg.uuid == msgUUID) {
+                    msg.copy(delivered = true, updatedTimestamp = Clock.System.now().toEpochMilliseconds())
+                } else {
+                    msg
+                }
+            }
+        }
+    }
+
     fun addPendingMessage(newMsg: Message, dataIndex: Int) {
         _messages.update { messages ->
             val updated = messages.toMutableList()

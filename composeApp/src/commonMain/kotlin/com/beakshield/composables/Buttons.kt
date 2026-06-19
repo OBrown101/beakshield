@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.rounded.ChatBubble
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -37,8 +39,51 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import beakshield.composeapp.generated.resources.Res
 import beakshield.composeapp.generated.resources.nav_btn_dawson
+import com.beakshield.dangerColor
+import com.beakshield.dawsonRed
+import com.beakshield.textPrimaryColor
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+
+@Preview
+@Composable
+fun SquareRoundedIconBtn(
+    modifier: Modifier = Modifier,
+    btnSize: Int = 55,
+    bgColor: Color = dawsonRed,
+    borderColor: Color = dangerColor,
+    enabled: Boolean = true,
+    onClick: () -> Unit = {},
+    content: @Composable () -> Unit = {
+        Icon(
+            modifier = Modifier.size(22.dp),
+            imageVector = Icons.Outlined.AttachFile,
+            contentDescription = "",
+            tint = textPrimaryColor
+        )
+    }
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = modifier
+            .size(btnSize.dp)
+            .clip(shape)
+            .background(bgColor)
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = shape
+            )
+            .alpha(if (enabled) 1f else 0.6f)
+            .clickable(
+                enabled = enabled,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        content()
+    }
+}
 
 @Preview
 @Composable
