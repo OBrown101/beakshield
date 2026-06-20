@@ -23,8 +23,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 data class ServerConnState(
     var state: ConnState = DISCONNECTED,
@@ -64,6 +67,9 @@ class WebSocketClient {
     private var client: HttpClient? = null
     private var session: DefaultClientWebSocketSession? = null
 
+    private val maxPacketChars = 32_000
+    private val chunkBuffers = mutableMapOf<String, MutableList<String?>>()
+
     private val _incomingPackets = MutableSharedFlow<WSPacket>()
     val incomingPackets = _incomingPackets.asSharedFlow()
 
@@ -91,8 +97,7 @@ class WebSocketClient {
                         for (frame in incoming) {
                             frame as? Frame.Text ?: continue
 
-                            val decoded = json.decodeFromString(serializer, frame.readText())
-                            _incomingPackets.emit(decoded)
+                            handleIncomingText(frame.readText())
                         }
                     } catch (e: Exception) {
                         setConnState(ERROR, e.message ?: "")
@@ -107,12 +112,68 @@ class WebSocketClient {
         }
     }
 
-    @OptIn(InternalSerializationApi::class)
-    fun <T : Any>send(data: T, dataClass: KClass<T>, packetType: WSPacket.PacketType) {
+    private suspend fun handleIncomingText(text: String) {
+        val packet = json.decodeFromString(serializer, text)
+
+        if (packet.isChunk) {
+            val transferUUID = packet.transferUUID ?: return
+            val index = packet.index ?: return
+            val total = packet.total ?: return
+            val chunkText = packet.payloadAs<String>() ?: return
+
+            val buffer = chunkBuffers.getOrPut(transferUUID) {
+                MutableList(total) { null }
+            }
+
+            if (index !in buffer.indices) return
+            buffer[index] = chunkText
+
+            if (buffer.all { it != null }) {
+                chunkBuffers.remove(transferUUID)
+
+                val reassembled = buffer.joinToString("") { it ?: "" }
+                handleIncomingText(reassembled)
+            }
+            return
+        }
+
+        _incomingPackets.emit(packet)
+    }
+
+    @OptIn(InternalSerializationApi::class, ExperimentalUuidApi::class)
+    fun <T : Any> send(data: T, dataClass: KClass<T>, packetType: WSPacket.PacketType) {
         scope.launch {
-            val packet = WSPacket(packetType, json.encodeToJsonElement(dataClass.serializer(), data))
-            val encoded = json.encodeToString(serializer, packet)
+            val packet = WSPacket(
+                type = packetType,
+                payload = json.encodeToJsonElement(dataClass.serializer(), data)
+            )
+            sendPacket(packet)
+        }
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    private suspend fun sendPacket(packet: WSPacket) {
+        val encoded = json.encodeToString(serializer, packet)
+
+        if (encoded.length <= maxPacketChars) {
             session?.send(Frame.Text(encoded))
+            return
+        }
+
+        val transferUUID = Uuid.random().toString()
+        val chunks = encoded.chunked(maxPacketChars)
+
+        chunks.forEachIndexed { index, chunkText ->
+            val chunkPacket = WSPacket(
+                type = packet.type,
+                payload = JsonPrimitive(chunkText),
+                transferUUID = transferUUID,
+                index = index,
+                total = chunks.size
+            )
+
+            val encodedChunk = json.encodeToString(serializer, chunkPacket)
+            session?.send(Frame.Text(encodedChunk))
         }
     }
 

@@ -5,13 +5,14 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.serializer
-import kotlin.reflect.KClass
 
 @Serializable
 data class WSPacket(
     val type: PacketType,
-    val payload: JsonElement
+    val payload: JsonElement,
+    val transferUUID: String? = null,
+    val index: Int? = null,
+    val total: Int? = null
 ) {
 
     enum class PacketType {
@@ -30,6 +31,9 @@ data class WSPacket(
             }
         }
     }
+
+    val isChunk: Boolean
+        get() = (transferUUID != null) && (index != null) && (total != null)
 
     @OptIn(InternalSerializationApi::class)
     inline fun <reified T> payloadAs(): T? {

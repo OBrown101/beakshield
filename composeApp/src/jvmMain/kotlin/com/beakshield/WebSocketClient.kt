@@ -16,7 +16,9 @@ actual fun dawsonHttpClient(expectedCertFingerprint: String): HttpClient {
             }
         }
 
-        install(WebSockets)
+        install(WebSockets) {
+            maxFrameSize = 64_000
+        }
     }
 }
 
