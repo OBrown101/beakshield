@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -51,7 +50,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -336,7 +334,9 @@ private fun MessageSegment(
             )
         }
         TEXT_PROMPT -> {
-            CollapsibleBubbleContent {
+            CollapsibleBubbleContent(
+                enabled = ((text.length > 1800) && (text.lines().size > 12))
+            ) {
                 Text(
                     modifier = Modifier,
                     text = text,
@@ -350,7 +350,7 @@ private fun MessageSegment(
         DATA_PROMPT -> TODO()
         else -> {
             CollapsibleBubbleContent(
-                enabled = !message.isStream
+                enabled = ((text.length > 1800) && (text.lines().size > 12)) && !message.isStream
             ) {
                 Box {
                     Markdown(
@@ -505,77 +505,54 @@ fun CollapsibleBubbleContent(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    /* Note: Tried using onGloballyPositioned, kept having jumpy behavior with scrolling main scrolling.
-             AI recommended utilizing this (working) setup with SubcomposeLayout. */
-
-    Box(modifier = modifier) {
-        SubcomposeLayout(
-            modifier = Modifier.clipToBounds()
-        ) { constraints ->
-
-            val collapsedHeightPx = collapsedHeight.roundToPx()
-
-            val contentPlaceable = subcompose("content") {
-                content()
-            }.first().measure(constraints)
-
-            val canCollapse = enabled && contentPlaceable.height > collapsedHeightPx
-
-            val layoutHeight = if (!expanded && canCollapse) {
-                collapsedHeightPx
-            } else {
-                contentPlaceable.height
-            }
-
-            layout(contentPlaceable.width, layoutHeight) {
-                contentPlaceable.place(0, 0)
-            }
+    Box(
+        modifier = modifier
+            .then(if (enabled && !expanded) Modifier.height(collapsedHeight) else Modifier)
+            .clipToBounds()
+    ) {
+        Box(modifier = Modifier.padding(bottom = if (enabled) 20.dp else 0.dp)) {
+            content()
         }
+        if (enabled) {
+            CollapseBtn(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter),
+                expanded = expanded,
+                onClick = { expanded = !expanded }
+            )
+        }
+    }
+}
 
-        SubcomposeLayout(
-            modifier = Modifier.align(Alignment.BottomCenter)
-        ) { constraints ->
-
-            val collapsedHeightPx = collapsedHeight.roundToPx()
-
-            val contentPlaceable = subcompose("measure") {
-                content()
-            }.first().measure(constraints)
-
-            val canCollapse = enabled && contentPlaceable.height > collapsedHeightPx
-
-            if (!canCollapse) {
-                layout(0, 0) {}
-            } else {
-                val buttonPlaceable = subcompose("button") {
-                    Box(
-                        modifier = Modifier
-                            .offset(y = 12.dp)
-                            .background(
-                                color = dawsonGold.copy(alpha = 0.8f),
-                                shape = CircleShape
-                            )
-                    ) {
-                        IconButton(
-                            modifier = Modifier.size(26.dp),
-                            onClick = { expanded = !expanded }
-                        ) {
-                            Icon(
-                                imageVector = if (expanded) {
-                                    Icons.Default.Remove
-                                } else {
-                                    Icons.Default.Add
-                                },
-                                contentDescription = null
-                            )
-                        }
-                    }
-                }.first().measure(constraints)
-
-                layout(buttonPlaceable.width, buttonPlaceable.height) {
-                    buttonPlaceable.place(0, 0)
-                }
-            }
+@Composable
+fun CollapseBtn(
+    modifier: Modifier = Modifier,
+    expanded: Boolean = true,
+    onClick: () -> Unit = {}
+) {
+    Box(
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .width(225.dp)
+                .height(3.dp)
+                .background(dawsonGold.copy(alpha = 0.8f), RoundedCornerShape(5.dp))
+        )
+        IconButton(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(20.dp),
+            onClick = onClick
+        ) {
+            Icon(
+                modifier = Modifier
+                    .size(15.dp)
+                    .background(dawsonGold, CircleShape),
+                imageVector = if (expanded) Icons.Default.Remove else Icons.Default.Add,
+                contentDescription = null
+            )
         }
     }
 }

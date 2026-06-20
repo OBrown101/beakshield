@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,7 +49,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Devices.DESKTOP
+import androidx.compose.ui.tooling.preview.Devices.TABLET
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,20 +67,20 @@ import com.beakshield.formatWithSuffix
 import com.beakshield.lightGreenColor
 import org.jetbrains.compose.resources.painterResource
 
-@Preview(device = DESKTOP)
+@Preview(device = TABLET)
 @Composable
 fun ProfileView(
     modifier: Modifier = Modifier,
     agent: Agent? = Agent.MockAgent.mockAgents[0],
-    title: String = "Android Development Agent",
-    subtitle: String = "USBManager Refactor",
+    title: String? = "Android Development Agent",
+    subtitle: String? = "USBManager Refactor",
     onTitleChange: (String) -> Unit = {},
     onModeClick: (Agent.Mode) -> Unit = {},
     onModelClick: (LLMModel) -> Unit = {},
     onContextClick: () -> Unit = {}
 ) {
     var titleProvided by remember { mutableStateOf(title) }
-    val editMode = (titleProvided != title)
+    val editMode = ((titleProvided != null) && (titleProvided != title))
     val titleIconModifier = if (editMode) {
         Modifier.padding(10.dp)
         Modifier.size(30.dp)
@@ -87,11 +88,18 @@ fun ProfileView(
         Modifier
     }
     val titleIconBgColor = when {
-        editMode && titleProvided.isNotEmpty() -> lightGreenColor
+        (titleProvided == null) -> Color.Transparent
+        editMode && (titleProvided?.isNotEmpty() ?: false) -> lightGreenColor
         editMode -> dangerColor
         else -> Color.Transparent
     }
     val padBetween = 10
+
+    LaunchedEffect(title) {
+        if ((titleProvided == null) || (titleProvided == "---") || (titleProvided == title)) {
+            titleProvided = title
+        }
+    }
 
     Row(
         modifier = modifier
@@ -125,7 +133,7 @@ fun ProfileView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = padBetween.dp),
-                value = titleProvided,
+                value = titleProvided ?: "---",
                 onValueChange = {
                     titleProvided = it
                 },
@@ -153,8 +161,9 @@ fun ProfileView(
                             modifier = Modifier
                                 .size(22.dp)
                                 .clickable(enabled = editMode) {
-                                    if (titleProvided.isNotEmpty()) {
-                                        onTitleChange(titleProvided)
+                                    val text = titleProvided ?: return@clickable
+                                    if (text.isNotEmpty()) {
+                                        onTitleChange(text)
                                     }
                                 }
                                 .clip(CircleShape)
@@ -182,7 +191,7 @@ fun ProfileView(
                 Spacer(Modifier.width(12.dp))
                 Text(
                     modifier = Modifier.width(275.dp),
-                    text = subtitle.ifBlank { "---" },
+                    text = subtitle?.ifBlank { null } ?: "---",
                     color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,

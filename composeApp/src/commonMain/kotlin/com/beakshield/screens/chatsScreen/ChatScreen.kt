@@ -39,8 +39,8 @@ fun ChatsScreen(
                 ProfileView(
                     modifier = Modifier,
                     agent = currentAgent,
-                    title = currentTitle?.ifBlank { null } ?: "---",
-                    subtitle = currentSubtitle?.ifBlank { null } ?: "---",
+                    title = currentTitle,
+                    subtitle = currentSubtitle,
                     onTitleChange = { chatsScreenViewModel.setTitle(it) },
                     onModeClick = { chatsScreenViewModel.setMode(it) },
                     onModelClick = { chatsScreenViewModel.setModel(it) },
