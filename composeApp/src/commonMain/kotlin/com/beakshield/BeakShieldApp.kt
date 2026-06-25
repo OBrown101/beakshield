@@ -58,6 +58,10 @@ object BeakShieldApp {
     }
 
     fun onCreate() {
+        if (preferences.isFirstLaunch) {
+            // Any first launch code here
+            preferences.isFirstLaunch = false
+        }
         preferences
         dawson
 

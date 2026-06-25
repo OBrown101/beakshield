@@ -1,39 +1,27 @@
-package com.beakshield.screens.chatsScreen
+package com.beakshield.screens.chatsScreen.chatView
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -49,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -61,9 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.borderColor
 import com.beakshield.cardColor
-import com.beakshield.composables.SquareRoundedIconBtn
 import com.beakshield.dangerColor
-import com.beakshield.dawson.Agent
 import com.beakshield.dawson.Message
 import com.beakshield.dawson.Message.MsgType.DATA_PROMPT
 import com.beakshield.dawson.Message.MsgType.TEXT_PROMPT
@@ -77,13 +62,8 @@ import com.beakshield.dawsonRed
 import com.beakshield.elevatedSurfaceColor
 import com.beakshield.formatTimestamp
 import com.beakshield.infoColor
-import com.beakshield.isJvm
-import com.beakshield.pickFilePath
-import com.beakshield.primaryColor
 import com.beakshield.textPrimaryColor
 import com.beakshield.textSecondaryColor
-import com.beakshield.websocket.UserInputRequest
-import com.beakshield.websocket.UserInputResponse
 import com.mikepenz.markdown.compose.Markdown
 import com.mikepenz.markdown.compose.components.markdownComponents
 import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeBlock
@@ -92,108 +72,8 @@ import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
 import kotlinx.coroutines.launch
 
-
 @Composable
-fun ChatView(
-    modifier: Modifier = Modifier,
-    agent: Agent,
-    groupedMessages: Map<String, List<Message>>,
-    pendingInputRequests: List<UserInputRequest> = emptyList(),
-    userUUIDSelected: String,
-    onSendMessage: (String) -> Unit,
-    onRespondToRequest: (UserInputResponse) -> Unit,
-    onAttachClick: (String) -> Unit = {},
-    onMicClick: () -> Unit = {}
-) {
-    val scope = rememberCoroutineScope()
-    val pendingRequest = pendingInputRequests.firstOrNull { it.agentUUID == agent.uuid && it.userUUID == userUUIDSelected }
-    var userInput by remember { mutableStateOf("") }
-    val listState = rememberLazyListState()
-
-    fun attachDirectory() {
-        scope.launch {
-            val path = if (isJvm) pickFilePath() else userInput.trim().takeIf { it.isNotEmpty() }
-            path?.let {
-                onAttachClick(it)
-            }
-        }
-    }
-
-    fun onSend() {
-        val trimmed = userInput.trim()
-        if (trimmed.isNotEmpty()) {
-            pendingRequest?.let { request ->
-                if (!request.type.textResp) return@let
-                val response = UserInputResponse(agent.uuid, userUUIDSelected, null, trimmed)
-                onRespondToRequest(response)
-            } ?: run {
-                onSendMessage(trimmed)
-            }
-
-            userInput = ""
-        }
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.Transparent)
-            .padding(horizontal = 15.dp, vertical = 10.dp)
-    ) {
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            state = listState,
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            items(
-                items = groupedMessages.entries.toList(),
-                key = { (groupKey, _) -> groupKey }
-            ) { (_, messages) ->
-                ChatBubbleRow(
-                    isUser = (messages.firstOrNull()?.sourceUUID == userUUIDSelected),
-                    messages = messages
-                )
-            }
-        }
-
-        pendingRequest?.let { request ->
-            if (!request.type.binaryResp) return@let
-            PendingInputRequestSegment(
-                request = request,
-                onApprove = {
-                    val response = UserInputResponse(agent.uuid, userUUIDSelected, true, null)
-                    onRespondToRequest(response)
-                },
-                onDeny = {
-                    val response = UserInputResponse(agent.uuid, userUUIDSelected, false, null)
-                    onRespondToRequest(response)
-                }
-            )
-
-            Spacer(Modifier.height(10.dp))
-        }
-
-        UserInputBar(
-            modifier = Modifier,
-            value = userInput,
-            onValueChange = { userInput = it },
-            placeholder = "Ask agent anything...",
-            onAttachClick = {
-                attachDirectory()
-            },
-            onMicClick = onMicClick,
-            onSendClick = {
-                onSend()
-            }
-        )
-    }
-}
-
-@Composable
-private fun ChatBubbleRow(
+fun ChatBubbleRow(
     isUser: Boolean,
     messages: List<Message>
 ) {
@@ -497,7 +377,7 @@ private fun CollapsibleMessageSegment(
 }
 
 @Composable
-fun CollapsibleBubbleContent(
+private fun CollapsibleBubbleContent(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     collapsedHeight: Dp = 200.dp,
@@ -525,7 +405,7 @@ fun CollapsibleBubbleContent(
 }
 
 @Composable
-fun CollapseBtn(
+private fun CollapseBtn(
     modifier: Modifier = Modifier,
     expanded: Boolean = true,
     onClick: () -> Unit = {}
@@ -554,145 +434,5 @@ fun CollapseBtn(
                 contentDescription = null
             )
         }
-    }
-}
-
-@Composable
-fun UserInputBar(
-    modifier: Modifier = Modifier,
-    value: String,
-    placeholder: String,
-    onValueChange: (String) -> Unit,
-    onAttachClick: () -> Unit,
-    onMicClick: () -> Unit,
-    onSendClick: () -> Unit
-) {
-    val outerShape = RoundedCornerShape(24.dp)
-    val inputShape = RoundedCornerShape(16.dp)
-    val buttonShape = RoundedCornerShape(14.dp)
-    val btnSize = 55
-    val btnIconSize = 22
-    val textFieldFont = 14
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(outerShape)
-            .background(cardColor.copy(alpha = 0.55f))
-            .border(
-                width = 1.dp,
-                color = borderColor.copy(alpha = 0.75f),
-                shape = outerShape
-            )
-            .padding(horizontal = 13.dp, vertical = 13.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            SquareRoundedIconBtn(
-                modifier = Modifier,
-                btnSize = btnSize,
-                bgColor = cardColor,
-                borderColor = borderColor.copy(alpha = 0.85f),
-                onClick = onAttachClick,
-            ) {
-                Icon(
-                    modifier = Modifier.size(btnIconSize.dp),
-                    imageVector = Icons.Outlined.AttachFile,
-                    contentDescription = "",
-                    tint = textPrimaryColor
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            SquareRoundedIconBtn(
-                modifier = Modifier,
-                btnSize = btnSize,
-                bgColor = cardColor,
-                borderColor = borderColor.copy(alpha = 0.85f),
-                enabled = false,    // TODO
-                onClick = onMicClick,
-            ) {
-                Icon(
-                    modifier = Modifier.size(btnIconSize.dp),
-                    imageVector = Icons.Outlined.Mic,
-                    contentDescription = "Voice input",
-                    tint = textPrimaryColor
-                )
-            }
-
-            Spacer(Modifier.width(20.dp))
-            BasicTextField(
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = btnSize.dp, max = 160.dp)
-                    .clip(inputShape)
-                    .background(cardColor)
-                    .border(
-                        width = 1.dp,
-                        color = borderColor.copy(alpha = 0.8f),
-                        shape = inputShape
-                    )
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
-                value = value,
-                onValueChange = onValueChange,
-                textStyle = TextStyle(
-                    color = textPrimaryColor,
-                    fontSize = textFieldFont.sp,
-                    lineHeight = 17.sp,
-                    fontWeight = FontWeight.Normal
-                ),
-                cursorBrush = SolidColor(primaryColor),
-                keyboardActions = KeyboardActions(
-                    onSend = {
-                        onSendClick()
-                    }
-                ),
-                decorationBox = { innerTextField ->
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        if (value.isBlank()) {
-                            Text(
-                                text = placeholder,
-                                color = textSecondaryColor.copy(0.8f),
-                                fontSize = textFieldFont.sp,
-                                fontWeight = FontWeight.Normal
-                            )
-                        }
-
-                        innerTextField()
-                    }
-                }
-            )
-            Spacer(Modifier.width(20.dp))
-
-            SquareRoundedIconBtn(
-                modifier = Modifier,
-                btnSize = btnSize,
-                bgColor = dawsonRed,
-                borderColor = dangerColor.copy(alpha = 0.35f),
-                enabled = value.isNotBlank(),
-                onClick = onSendClick,
-            ) {
-                Icon(
-                    modifier = Modifier.size(btnIconSize.dp),
-                    imageVector = Icons.AutoMirrored.Outlined.Send,
-                    contentDescription = "",
-                    tint = textPrimaryColor
-                )
-            }
-        }
-
-        Text(
-            modifier = Modifier.padding(top = 5.dp),
-            text = "Press Enter to send • Shift + Enter for new line",
-            color = textSecondaryColor.copy(alpha = 0.75f),
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Normal
-        )
     }
 }

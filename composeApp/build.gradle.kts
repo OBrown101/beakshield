@@ -54,6 +54,7 @@ kotlin {
             implementation("androidx.compose.material3:material3-window-size-class:1.4.0")
             implementation("org.jetbrains.compose.material3.adaptive:adaptive:1.2.0")
             implementation("io.ktor:ktor-client-okhttp:3.4.2")
+            implementation("com.russhwolf:multiplatform-settings-no-arg:1.3.0")
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -91,6 +92,7 @@ kotlin {
             implementation("io.ktor:ktor-client-cio:3.4.2")
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation("com.russhwolf:multiplatform-settings-serialization:1.3.0")
         }
         iosMain.dependencies {
             implementation("io.ktor:ktor-client-darwin:3.4.2")

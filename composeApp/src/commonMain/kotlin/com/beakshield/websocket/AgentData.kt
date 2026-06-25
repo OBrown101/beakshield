@@ -16,6 +16,7 @@ data class AgentData(
     val payload: JsonElement,
 ) {
     enum class DataType {
+        AGENT_STATE,
         TEXT_THINKING,
         TEXT_RESPONSE,
         DATA_RESPONSE,

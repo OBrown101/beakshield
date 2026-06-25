@@ -6,6 +6,8 @@ import beakshield.composeapp.generated.resources.dawson_profile
 import beakshield.composeapp.generated.resources.page_profile
 import beakshield.composeapp.generated.resources.squirebot_profile
 import com.beakshield.capitalizeString
+import com.beakshield.dangerColor
+import com.beakshield.darkGreenColor
 import com.beakshield.infoColor
 import com.beakshield.lightGreenColor
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +22,7 @@ data class Agent(
     val uuid: String,
     val userUUID: String,
     val type: AgentType = AgentType.SQUIREBOT,
-    val mode: Mode = Mode.EGG,
+    var mode: Mode = Mode.EGG,
     var model: LLMModel,
     var state: AgentState = AgentState.READY,
     var thoughtWindow: Int,
@@ -33,24 +35,44 @@ data class Agent(
 
     enum class AgentState {
         READY,
-        AWAITING_INPUT;
+        AWAITING_INPUT,
+        PROCESSING,
+        THINKING,
+        ACTING,
+        RESPONDING,
+        ERROR;
 
         val label: String
             get() = when (this) {
                 READY -> "Ready"
                 AWAITING_INPUT -> "Awaiting"
+                PROCESSING -> "Processing"
+                THINKING -> "Thinking"
+                ACTING -> "Acting"
+                RESPONDING -> "Responding"
+                ERROR -> "Error"
             }
 
         val color: Color
             get() = when (this) {
                 READY -> lightGreenColor
                 AWAITING_INPUT -> infoColor
+                PROCESSING -> darkGreenColor
+                THINKING -> darkGreenColor
+                ACTING -> darkGreenColor
+                RESPONDING -> darkGreenColor
+                ERROR -> dangerColor
             }
 
         val message: String
             get() = when (this) {
-                READY -> "Agent is online"
-                AWAITING_INPUT -> "Agent awaiting input"
+                READY -> "Ready"
+                AWAITING_INPUT -> "Awaiting your input"
+                PROCESSING -> "Processing your request"
+                THINKING -> "Thinking..."
+                ACTING -> "Taking action"
+                RESPONDING -> "Responding..."
+                ERROR -> "Encountered an error"
             }
     }
 

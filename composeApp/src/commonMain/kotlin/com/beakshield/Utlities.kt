@@ -15,6 +15,10 @@ expect suspend fun pickFilePath(): String?
 expect fun dawsonHttpClient(expectedCertFingerprint: String): HttpClient
 
 fun Int.formatWithSuffix(): String = when {
+    this >= 1_000_000_000 -> {
+        val v = round(this / 1_000_000_000.0 * 10) / 10.0
+        "${v}${if (v % 1.0 == 0.0) "B" else "B"}"
+    }
     this >= 1_000_000 -> {
          val v = round(this / 1_000_000.0 * 10) / 10.0
          "${v}${if (v % 1.0 == 0.0) "M" else "M"}"

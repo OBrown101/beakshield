@@ -18,6 +18,7 @@ data class WSPacket(
     enum class PacketType {
         PING,
         PONG,
+        SYNC_STATE,
         USER_DATA,
         AGENT_DATA,
         CHAT_DATA,

@@ -2,6 +2,8 @@ package com.beakshield
 
 import com.russhwolf.settings.Settings
 
+expect fun createPortableSettings(): Settings
+
 object GlobalPrefKeys {
     const val IS_FIRST_LAUNCH = "IS_FIRST_LAUNCH"
     const val SERVER_ADDRESS = "SERVER_ADDRESS"
@@ -11,7 +13,7 @@ object GlobalPrefKeys {
 }
 
 class Preferences(
-    private val settings: Settings = Settings()
+    private val settings: Settings = createPortableSettings()
 ) {
     var isFirstLaunch: Boolean
         get() = settings.getBoolean(GlobalPrefKeys.IS_FIRST_LAUNCH, true)

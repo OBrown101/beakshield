@@ -77,6 +77,7 @@ fun ProfileView(
     onTitleChange: (String) -> Unit = {},
     onModeClick: (Agent.Mode) -> Unit = {},
     onModelClick: (LLMModel) -> Unit = {},
+    onThoughtClick: () -> Unit = {},
     onContextClick: () -> Unit = {}
 ) {
     var titleProvided by remember { mutableStateOf(title) }
@@ -215,9 +216,9 @@ fun ProfileView(
                                 .background(agent?.state?.color ?: dawsonGold)
                         )
                     },
-                    title = (agent?.state?.label ?: "Connecting"),
+                    title = "Current Status",
                     subtitle = agent?.state?.message ?: "Agent being spawned",
-                    clickable = false
+                    enabled = false
                 )
                 ModeDropdown(
                     modifier = Modifier,
@@ -240,7 +241,8 @@ fun ProfileView(
                     },
                     title = "Thought Window",
                     subtitle = agent?.thoughtWindow?.formatWithSuffix()?.let { "$it msgs" } ?: "---",
-                    onClick = onContextClick
+                    enabled = (agent != null),
+                    onClick = onThoughtClick
                 )
                 StatusCard(
                     icon = {
@@ -253,6 +255,7 @@ fun ProfileView(
                     },
                     title = "Context Window",
                     subtitle = agent?.contextWindow?.formatWithSuffix()?.let { "$it tokens" } ?: "---",
+                    enabled = (agent != null),
                     onClick = onContextClick
                 )
             }
@@ -265,7 +268,7 @@ private fun StatusCard(
     icon: @Composable () -> Unit,
     title: String,
     subtitle: String,
-    clickable: Boolean = true,
+    enabled: Boolean = true,
     onClick: () -> Unit = {}
 ) {
     val shape = RoundedCornerShape(14.dp)
@@ -276,7 +279,7 @@ private fun StatusCard(
             .background(cardColor.copy(alpha = 0.9f))
             .border(1.dp, Color.White.copy(alpha = 0.08f), shape)
             .then(
-                if (clickable) {
+                if (enabled) {
                     Modifier.clickable(onClick = onClick)
                 } else {
                     Modifier
@@ -340,7 +343,7 @@ fun ModeDropdown(
                     },
                     title = "Agent Capability",
                     subtitle = agent?.mode?.label ?: "---",
-                    clickable = false
+                    enabled = false
                 )
             }
         )
@@ -393,7 +396,7 @@ fun ModelDropdown(
                     },
                     title = "Model",
                     subtitle = agent?.model?.name ?: "---",
-                    clickable = false
+                    enabled = false
                 )
             }
         )

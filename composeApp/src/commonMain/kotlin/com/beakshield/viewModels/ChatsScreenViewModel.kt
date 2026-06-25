@@ -183,9 +183,6 @@ class ChatsScreenViewModel : VModel {
 
     fun selectChat(chatUUID: String?) {
         _chatUUIDSelected.value = chatUUID
-        chatUUID?.let {
-            dawson.fetchChatMessages(it)
-        }
     }
 
     fun startPrimaryChat() {

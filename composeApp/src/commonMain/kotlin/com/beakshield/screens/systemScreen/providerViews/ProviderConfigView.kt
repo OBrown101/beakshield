@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.cardColor
 import com.beakshield.composables.BasicBox
-import com.beakshield.composables.BasicInputField
+import com.beakshield.composables.BasicPasswordInputField
 import com.beakshield.composables.BasicRoundedIconBtn
 import com.beakshield.composables.beakshieldScrollbar
 import com.beakshield.dawson.Provider
@@ -107,7 +107,7 @@ fun ProviderConfigView(
             Column(
                 modifier = Modifier
             ) {
-                BasicInputField(
+                BasicPasswordInputField(
                     modifier = Modifier.padding(bottom = padBetween.dp),
                     label = "API Key",
                     titleFontSize = 14,

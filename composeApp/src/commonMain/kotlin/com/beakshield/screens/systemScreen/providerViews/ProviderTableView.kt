@@ -14,6 +14,9 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,6 +70,11 @@ fun ProviderTableCell(
     cellViewModel: ProviderCellViewModel
 ) {
     val provider = cellViewModel.provider
+    val needsConfig by remember(provider) {
+        derivedStateOf {
+            (provider.apiKey.isEmpty() && provider.models.isEmpty())
+        }
+    }
 
     BasicBox(
         modifier = modifier,
@@ -112,15 +120,15 @@ fun ProviderTableCell(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (provider.apiKey.isNotEmpty()) darkGreenColor else dawsonRed)
+                    .background(if (needsConfig) dawsonRed else darkGreenColor)
                     .padding(horizontal = 8.dp)
                     .height(19.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     modifier = Modifier.align(Alignment.Center),
-                    text = if (provider.apiKey.isNotEmpty()) "Not Configured" else "Ready",
-                    color = if (provider.apiKey.isNotEmpty()) dangerColor else lightGreenColor,
+                    text = if (needsConfig) "Not Configured" else "Ready",
+                    color = if (needsConfig) dangerColor else lightGreenColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )

@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.beakshield.BeakShieldApp.dawson
 import com.beakshield.screens.Destination
+import com.beakshield.screens.chatsScreen.chatView.ChatView
 import com.beakshield.viewModels.ChatsScreenViewModel
 
 @Composable
@@ -44,6 +45,7 @@ fun ChatsScreen(
                     onTitleChange = { chatsScreenViewModel.setTitle(it) },
                     onModeClick = { chatsScreenViewModel.setMode(it) },
                     onModelClick = { chatsScreenViewModel.setModel(it) },
+                    onThoughtClick = {},
                     onContextClick = {}
                 )
                 userUUIDSelected?.let { userUUID ->
