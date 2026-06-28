@@ -61,4 +61,48 @@ data class Message(
             return "${uuid}_${this.name}"
         }
     }
+
+    object MockMessage {
+        val mockMessages = listOf(
+            Message(
+                uuid = "msg-001",
+                dataUUID = "run-001",
+                sourceUUID = "source-001",
+                destinationUUID = "dest-001",
+                type = MsgType.TEXT_PROMPT,
+                chunks = mutableMapOf(0 to "Hello, world!"),
+                numChunks = 1,
+                isStream = false,
+                delivered = true,
+                createdTimestamp = 1680000000000L,
+                updatedTimestamp = 1680000000000L
+            ),
+            Message(
+                uuid = "msg-002",
+                dataUUID = "run-002",
+                sourceUUID = "source-002",
+                destinationUUID = "dest-002",
+                type = MsgType.TEXT_RESPONSE,
+                chunks = mutableMapOf(0 to "Great to hear, thank you"),
+                numChunks = 1,
+                isStream = false,
+                delivered = false,
+                createdTimestamp = 1680000010000L,
+                updatedTimestamp = 1680000015000L
+            ),
+            Message(
+                uuid = "msg-003",
+                dataUUID = "run-003",
+                sourceUUID = "source-003",
+                destinationUUID = "dest-003",
+                type = MsgType.TEXT_RESPONSE,
+                chunks = mutableMapOf(0 to "Thanks for your input."),
+                numChunks = 1,
+                isStream = false,
+                delivered = false,
+                createdTimestamp = 1680000020000L,
+                updatedTimestamp = 1680000022000L
+            )
+        )
+    }
 }

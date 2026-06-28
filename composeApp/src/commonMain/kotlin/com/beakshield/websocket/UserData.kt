@@ -29,7 +29,8 @@ data class UserData(
 
     enum class DataType {
         TEXT_PROMPT,
-        DATA_PROMPT;
+        DATA_PROMPT,
+        CANCEL_CMD;
 
         companion object {
             fun fromMsgType(msgType: Message.MsgType): DataType? {

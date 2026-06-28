@@ -97,6 +97,22 @@ data class Agent(
 
         val label: String
             get() = name.capitalizeString() + " Mode"
+
+        val description: String
+            get() = when (this) {
+                EGG -> "Mode allows only responses to your prompts (basic chatbot-style)."
+                FLEDGLING -> "Mode allows read/write access to chat directories (writes require approval)."
+                WARRIOR -> "Mode allows read/write to chat directories without approval."
+                ULTIMATE -> "Mode allows full access to host system."
+            }
+
+        val warningMessage: String?
+            get() = when (this) {
+                EGG -> null
+                FLEDGLING -> null
+                WARRIOR -> "Only use if you trust your agent and model assigned."
+                ULTIMATE -> "CAUTION: Mode is untested and dangerous for host system. May make unrepairable changes."
+            }
     }
 
     object MockAgent {

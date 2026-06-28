@@ -2,9 +2,13 @@ package com.beakshield.screens.chatsScreen.chatView
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,14 +22,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -40,6 +48,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
@@ -49,15 +59,18 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.borderColor
 import com.beakshield.cardColor
 import com.beakshield.composables.SquareRoundedIconBtn
+import com.beakshield.composables.beakshieldScrollbar
 import com.beakshield.dangerColor
 import com.beakshield.dawson.Agent
 import com.beakshield.dawson.Message
@@ -77,14 +90,18 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChatView(
     modifier: Modifier = Modifier,
+    userInputFocusReq: FocusRequester,
     agent: Agent,
     groupedMessages: Map<String, List<Message>>,
     pendingInputRequests: List<UserInputRequest> = emptyList(),
     userUUIDSelected: String,
     onSendMessage: (String) -> Unit,
+    onRetry: (String) -> Unit,
     onRespondToRequest: (UserInputResponse) -> Unit,
+    onDeleteDirectory: (String) -> Unit = {},
     onAttachClick: (String) -> Unit = {},
-    onMicClick: () -> Unit = {}
+    onMicClick: () -> Unit = {},
+    onCancel: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val pendingRequest = pendingInputRequests.firstOrNull { it.agentUUID == agent.uuid && it.userUUID == userUUIDSelected }
@@ -139,6 +156,14 @@ fun ChatView(
         val lastItem = groupedMessages.entries.toList().lastIndex
         if (lastItem >= 0) {
             listState.scrollToItem(lastItem)
+
+            listState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.index == lastItem }
+                ?.let { item ->
+                    val viewportHeight = listState.layoutInfo.viewportEndOffset - listState.layoutInfo.viewportStartOffset
+                    val extraOffset = (item.size - viewportHeight).coerceAtLeast(0)
+                    listState.scrollBy(extraOffset.toFloat())
+                }
         }
         stickToBottom = true
     }
@@ -148,6 +173,14 @@ fun ChatView(
         val lastItem = groupedMessages.entries.toList().lastIndex
         if (lastItem >= 0 && stickToBottom) {
             listState.animateScrollToItem(lastItem)
+
+            listState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.index == lastItem }
+                ?.let { item ->
+                    val viewportHeight = listState.layoutInfo.viewportEndOffset - listState.layoutInfo.viewportStartOffset
+                    val extraOffset = (item.size - viewportHeight).coerceAtLeast(0)
+                    listState.animateScrollBy(extraOffset.toFloat())
+                }
         }
     }
 
@@ -171,8 +204,10 @@ fun ChatView(
                     key = { (groupKey, _) -> groupKey }
                 ) { (_, messages) ->
                     ChatBubbleRow(
+                        state = agent.state,
                         isUser = (messages.firstOrNull()?.sourceUUID == userUUIDSelected),
-                        messages = messages
+                        messages = messages,
+                        onRetry = onRetry
                     )
                 }
             }
@@ -184,6 +219,14 @@ fun ChatView(
                         val lastItem = groupedMessages.entries.toList().lastIndex
                         if (lastItem >= 0) {
                             listState.animateScrollToItem(lastItem)
+
+                            listState.layoutInfo.visibleItemsInfo
+                                .firstOrNull { it.index == lastItem }
+                                ?.let { item ->
+                                    val viewportHeight = listState.layoutInfo.viewportEndOffset - listState.layoutInfo.viewportStartOffset
+                                    val extraOffset = (item.size - viewportHeight).coerceAtLeast(0)
+                                    listState.animateScrollBy(extraOffset.toFloat())
+                                }
                             stickToBottom = true
                         }
                     }
@@ -210,16 +253,20 @@ fun ChatView(
 
         UserInputBar(
             modifier = Modifier,
+            userInputFocusReq = userInputFocusReq,
             value = userInput,
             onValueChange = { userInput = it },
-            placeholder = "Ask agent anything...",
+            directories = agent.directories,
+            awaitingResponse = (agent.state != Agent.AgentState.READY),
+            onRemoveDirectory = onDeleteDirectory,
             onAttachClick = {
                 attachDirectory()
             },
             onMicClick = onMicClick,
             onSendClick = {
                 onSend()
-            }
+            },
+            onCancel = onCancel
         )
     }
 }
@@ -256,19 +303,33 @@ private fun ScrollBtn(
 @Composable
 private fun UserInputBar(
     modifier: Modifier = Modifier,
+    userInputFocusReq: FocusRequester,
     value: TextFieldValue,
-    placeholder: String,
+    directories: List<String>,
+    awaitingResponse: Boolean,
+    onRemoveDirectory: (String) -> Unit,
     onValueChange: (TextFieldValue) -> Unit,
     onAttachClick: () -> Unit,
     onMicClick: () -> Unit,
-    onSendClick: () -> Unit
+    onSendClick: () -> Unit,
+    onCancel: () -> Unit,
 ) {
+
     val outerShape = RoundedCornerShape(24.dp)
     val inputShape = RoundedCornerShape(16.dp)
-    val buttonShape = RoundedCornerShape(14.dp)
     val btnSize = 55
     val btnIconSize = 22
     val textFieldFont = 14
+
+    fun handleClick(keyPress: Boolean = false) {
+        if (awaitingResponse && keyPress) return
+        if (awaitingResponse) {
+            onCancel()
+        } else {
+            onSendClick()
+        }
+    }
+
 
     fun handleKeyEvent(event: KeyEvent): Boolean {
         return if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
@@ -279,7 +340,7 @@ private fun UserInputBar(
                 onValueChange(tfValue)
                 true
             } else {
-                onSendClick()
+                handleClick(keyPress = true)
                 true
             }
         } else {
@@ -300,11 +361,19 @@ private fun UserInputBar(
             .padding(horizontal = 13.dp, vertical = 13.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        DirectoriesBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 96.dp)
+                .padding(horizontal = 8.dp),
+            directories = directories,
+            onRemoveDirectory = onRemoveDirectory
+        )
+        Spacer(Modifier.height(10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             SquareRoundedIconBtn(
                 modifier = Modifier,
                 btnSize = btnSize,
@@ -339,6 +408,7 @@ private fun UserInputBar(
             Spacer(Modifier.width(20.dp))
             BasicTextField(
                 modifier = Modifier
+                    .focusRequester(userInputFocusReq)
                     .weight(1f)
                     .heightIn(min = btnSize.dp, max = 160.dp)
                     .clip(inputShape)
@@ -351,6 +421,11 @@ private fun UserInputBar(
                     .padding(horizontal = 24.dp, vertical = 20.dp)
                     .onPreviewKeyEvent {
                         handleKeyEvent(it)
+                    }
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = {
+                            userInputFocusReq.requestFocus()
+                        })
                     },
                 value = value,
                 onValueChange = onValueChange,
@@ -368,7 +443,7 @@ private fun UserInputBar(
                     ) {
                         if (value.text.isBlank()) {
                             Text(
-                                text = placeholder,
+                                text = "Ask agent anything...",
                                 color = textSecondaryColor.copy(0.8f),
                                 fontSize = textFieldFont.sp,
                                 fontWeight = FontWeight.Normal
@@ -386,12 +461,14 @@ private fun UserInputBar(
                 btnSize = btnSize,
                 bgColor = dawsonRed,
                 borderColor = dangerColor.copy(alpha = 0.35f),
-                enabled = value.text.isNotBlank(),
-                onClick = onSendClick,
+                enabled = value.text.isNotBlank() || awaitingResponse,
+                onClick = {
+                    handleClick()
+                },
             ) {
                 Icon(
                     modifier = Modifier.size(btnIconSize.dp),
-                    imageVector = Icons.AutoMirrored.Outlined.Send,
+                    imageVector = if (awaitingResponse) Icons.Outlined.Pause else Icons.AutoMirrored.Outlined.Send,
                     contentDescription = "",
                     tint = textPrimaryColor
                 )
@@ -405,5 +482,64 @@ private fun UserInputBar(
             fontSize = 13.sp,
             fontWeight = FontWeight.Normal
         )
+    }
+}
+
+@Composable
+fun DirectoriesBox(
+    modifier: Modifier = Modifier,
+    directories: List<String>,
+    onRemoveDirectory: (String) -> Unit
+) {
+    val scrollState = rememberScrollState()
+    val outerShape = RoundedCornerShape(24.dp)
+
+    FlowRow(
+        modifier = modifier
+            .verticalScroll(scrollState)
+            .beakshieldScrollbar(scrollState),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        directories.forEach { dir ->
+            Box(
+                modifier = Modifier
+                    .background(Color.Transparent)
+                    .height(32.dp),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .background(cardColor)
+                        .border(
+                            width = 1.dp,
+                            color = borderColor.copy(alpha = 0.75f),
+                            shape = outerShape
+                        )
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 5.dp),
+                        text = dir,
+                        color = textPrimaryColor,
+                        fontSize = 12.sp,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    IconButton(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(cardColor)
+                            .size(20.dp),
+                        onClick = { onRemoveDirectory(dir) }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = "Remove",
+                            tint = textPrimaryColor
+                        )
+                    }
+                }
+            }
+        }
     }
 }

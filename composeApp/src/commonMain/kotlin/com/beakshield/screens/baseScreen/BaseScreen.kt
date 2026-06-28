@@ -45,6 +45,7 @@ import beakshield.composeapp.generated.resources.main_bg
 import beakshield.composeapp.generated.resources.nav_insignia
 import com.beakshield.backgroundColor
 import com.beakshield.dawsonGold
+import com.beakshield.notifications.AlertView
 import com.beakshield.screens.AppNavHost
 import com.beakshield.screens.Destination
 import com.beakshield.screens.NavigationRail
@@ -54,6 +55,7 @@ import com.beakshield.viewModels.BaseScreenViewModel
 import com.beakshield.viewModels.ChatsScreenViewModel
 import com.beakshield.viewModels.MainScreenViewModel
 import org.jetbrains.compose.resources.painterResource
+import org.legionarius.vector.notifications.AlertNotification
 
 @Composable
 fun BaseScreen(
@@ -61,6 +63,7 @@ fun BaseScreen(
     mainScreenViewModel: MainScreenViewModel,
     chatsScreenViewModel: ChatsScreenViewModel
 ) {
+    val currentAlert = baseScreenViewModel.currentAlert.collectAsState()
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val curDestination = navBackStackEntry?.destination?.route?.let { Destination.valueOf(it) } ?: Destination.MAIN
@@ -81,7 +84,9 @@ fun BaseScreen(
 
     MainBase(
         curDestination = curDestination,
-        navToScreen = { navToScreen(it) }
+        currentAlert = currentAlert.value,
+        dismissAlert = { baseScreenViewModel.dismissAlert() },
+        navToScreen = { navToScreen(it) },
     ) { modifier ->
         AppNavHost(
             modifier = modifier,
@@ -103,6 +108,8 @@ private fun MainBasePreview() {
 @Composable
 fun MainBase(
     curDestination: Destination = Destination.MAIN,
+    currentAlert: AlertNotification? = null,
+    dismissAlert: () -> Unit = {},
     navToScreen: (Destination) -> Unit = {},
     content: @Composable (Modifier) -> Unit = {}
 ) {
@@ -183,6 +190,11 @@ fun MainBase(
                     }
                 }
             }
+            AlertView(
+                modifier = Modifier.fillMaxSize(),
+                currentAlert = currentAlert,
+                onDismiss = dismissAlert
+            )
         }
     }
 }

@@ -155,6 +155,29 @@ class Dawson {
         }
     }
 
+    fun cancelAgentRun(agentUUID: String) {
+        val userUUID = _currentUserUUID.value ?: return
+        val chat = _activeChats.value.firstOrNull { it.agentUUID == agentUUID } ?: return
+
+        val runUUID = chat.messages.value
+            .asReversed()
+            .firstOrNull {
+                it.sourceUUID == userUUID &&
+                it.destinationUUID == agentUUID &&
+                (it.type == Message.MsgType.TEXT_PROMPT) || (it.type == Message.MsgType.DATA_PROMPT)
+            }?.dataUUID ?: return
+
+        val userData = UserData(
+            dataUUID = runUUID,
+            chatUUID = chat.uuid,
+            userUUID = userUUID,
+            agentUUID = agentUUID,
+            dataType = UserData.DataType.CANCEL_CMD,
+            payload = JsonNull
+        )
+        socket.send(userData, UserData::class, USER_DATA)
+    }
+
     fun respondToRequest(response: UserInputResponse) {
         _pendingInputRequests.update { requests ->
             requests.filterNot { it.agentUUID == response.agentUUID }
@@ -479,17 +502,15 @@ class Dawson {
     private fun updateAgentState(agentUUID: String, state: Agent.AgentState) {
         _activeAgents.update { oldAgents ->
             val index = oldAgents.indexOfFirst { it.uuid == agentUUID }
-            if (index == -1) {
-                oldAgents
-            } else {
-                val current = oldAgents[index]
+            if (index == -1) return@update oldAgents
 
-                current.state = state
-                current.updatedTimestamp = Clock.System.now().toEpochMilliseconds()
+            val current = oldAgents[index]
 
-                oldAgents.toMutableList().apply {
-                    this[index] = current
-                }
+            oldAgents.toMutableList().apply {
+                this[index] = current.copy(
+                    state = state,
+                    updatedTimestamp = Clock.System.now().toEpochMilliseconds()
+                )
             }
         }
     }
@@ -502,20 +523,19 @@ class Dawson {
                 (oldAgents + agent)
             } else {
                 val current = oldAgents[index]
-                val currentTimestamp = current.updatedTimestamp
-                if (currentTimestamp >= agent.updatedTimestamp) return@update oldAgents
-
-                current.state = agent.state
-                current.mode = agent.mode
-                current.model = agent.model
-                current.directories = agent.directories
-                current.thoughtWindow = agent.thoughtWindow
-                current.contextWindow = agent.contextWindow
-                current.useThinking = agent.useThinking
-                current.updatedTimestamp = Clock.System.now().toEpochMilliseconds()
+                if (current.updatedTimestamp >= agent.updatedTimestamp) return@update oldAgents
 
                 oldAgents.toMutableList().apply {
-                    this[index] = current
+                    this[index] = current.copy(
+                        state = agent.state,
+                        mode = agent.mode,
+                        model = agent.model,
+                        directories = agent.directories,
+                        thoughtWindow = agent.thoughtWindow,
+                        contextWindow = agent.contextWindow,
+                        useThinking = agent.useThinking,
+                        updatedTimestamp = Clock.System.now().toEpochMilliseconds()
+                    )
                 }
             }
         }
@@ -536,15 +556,14 @@ class Dawson {
                 (oldUsers + user)
             } else {
                 val current = oldUsers[index]
-                val currentTimestamp = current.updatedTimestamp
-                if (currentTimestamp >= user.updatedTimestamp) return@update oldUsers
-
-                current.name = user.name
-                current.notes = user.notes
-                current.updatedTimestamp = Clock.System.now().toEpochMilliseconds()
+                if (current.updatedTimestamp >= user.updatedTimestamp) return@update oldUsers
 
                 oldUsers.toMutableList().apply {
-                    this[index] = current
+                    this[index] = current.copy(
+                        name = user.name,
+                        notes = user.notes,
+                        updatedTimestamp = Clock.System.now().toEpochMilliseconds()
+                    )
                 }
             }
         }
@@ -567,8 +586,8 @@ class Dawson {
                 println("Provider (${provider.type}) added.")
                 (oldProviders + provider)
             } else {
-                val currentTimestamp = oldProviders[index].updatedTimestamp
-                if (currentTimestamp >= provider.updatedTimestamp) return@update oldProviders
+                val current = oldProviders[index]
+                if (current.updatedTimestamp >= provider.updatedTimestamp) return@update oldProviders
 
                 oldProviders.toMutableList().apply {
                     this[index] = oldProviders[index].copy(
@@ -589,8 +608,7 @@ class Dawson {
                 (oldChats + chat)
             } else {
                 val current = oldChats[index]
-                val currentTimestamp = current.updatedTimestamp
-                if (currentTimestamp >= chat.updatedTimestamp) return@update oldChats
+                if (current.updatedTimestamp >= chat.updatedTimestamp) return@update oldChats
 
                 current.title = chat.title
                 current.subtitle = chat.subtitle

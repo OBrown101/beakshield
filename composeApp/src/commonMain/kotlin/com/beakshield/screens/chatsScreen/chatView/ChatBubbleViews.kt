@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -43,12 +44,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.borderColor
 import com.beakshield.cardColor
 import com.beakshield.dangerColor
+import com.beakshield.dawson.Agent
 import com.beakshield.dawson.Message
 import com.beakshield.dawson.Message.MsgType.DATA_PROMPT
 import com.beakshield.dawson.Message.MsgType.TEXT_PROMPT
@@ -61,7 +64,7 @@ import com.beakshield.dawsonNavy
 import com.beakshield.dawsonRed
 import com.beakshield.elevatedSurfaceColor
 import com.beakshield.formatTimestamp
-import com.beakshield.infoColor
+import com.beakshield.lightGreenColor
 import com.beakshield.textPrimaryColor
 import com.beakshield.textSecondaryColor
 import com.mikepenz.markdown.compose.Markdown
@@ -72,10 +75,13 @@ import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
 import kotlinx.coroutines.launch
 
+@Preview
 @Composable
 fun ChatBubbleRow(
-    isUser: Boolean,
-    messages: List<Message>
+    state: Agent.AgentState = Agent.AgentState.READY,
+    isUser: Boolean = true,
+    messages: List<Message> = listOf(Message.MockMessage.mockMessages[0]),
+    onRetry: (String) -> Unit = {}
 ) {
     val rowPad = 40
     val paddingModifier = Modifier.padding(start = (if (isUser) rowPad.dp else 0.dp), end = (if (!isUser) rowPad.dp else 0.dp))
@@ -88,7 +94,9 @@ fun ChatBubbleRow(
             modifier = Modifier
                 .then(paddingModifier),
             isUser = isUser,
-            messages = messages
+            state = state,
+            messages = messages,
+            onRetry = onRetry
         )
     }
 }
@@ -97,7 +105,9 @@ fun ChatBubbleRow(
 private fun ChatBubble(
     modifier: Modifier,
     isUser: Boolean,
-    messages: List<Message>
+    state: Agent.AgentState,
+    messages: List<Message>,
+    onRetry: (String) -> Unit
 ) {
     val bubbleColor = if (isUser) {
         dawsonRed
@@ -159,8 +169,25 @@ private fun ChatBubble(
                         modifier = Modifier.size(18.dp),
                         imageVector = Icons.Outlined.Check,
                         contentDescription = "Delivered",
-                        tint = infoColor
+                        tint = lightGreenColor
                     )
+                    messages.lastOrNull()?.dataUUID?.let { dataUUID ->
+                        if (!isUser || (state != Agent.AgentState.READY)) return@let
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(
+                            modifier = Modifier.size(18.dp),
+                            onClick = {
+                                onRetry(dataUUID)
+                            }
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(18.dp),
+                                imageVector = Icons.Outlined.Refresh,
+                                contentDescription = "Retry",
+                                tint = textSecondaryColor
+                            )
+                        }
+                    }
                 }
             }
         }

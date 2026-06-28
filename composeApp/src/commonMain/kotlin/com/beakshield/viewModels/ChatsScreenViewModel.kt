@@ -5,10 +5,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import com.beakshield.BeakShieldApp.baseScreenViewModel
 import com.beakshield.BeakShieldApp.dawson
+import com.beakshield.BeakShieldApp.notifications
 import com.beakshield.dawson.Agent
 import com.beakshield.dawson.Chat
 import com.beakshield.dawson.LLMModel
 import com.beakshield.dawson.Message
+import com.beakshield.notifications.AlertButton
 import com.beakshield.screens.Destination
 import com.beakshield.screens.chatsScreen.ChatsSideRail
 import com.beakshield.tablecells.ChatCellViewModel
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.legionarius.vector.notifications.AlertNotification
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -48,11 +51,11 @@ class ChatsScreenViewModel : VModel {
 
     val currentTitle: StateFlow<String?> = combine(_chatUUIDSelected, dawson.activeChats) { chatUUID, chats ->
         chats.firstOrNull { it.uuid == chatUUID }?.title
-    }.stateIn(scope, SharingStarted.Lazily, null)
+    }.stateIn(scope, SharingStarted.Eagerly, null)
 
     val currentSubtitle: StateFlow<String?> = combine(_chatUUIDSelected, dawson.activeChats) { chatUUID, chats ->
         chats.firstOrNull { it.uuid == chatUUID }?.subtitle
-    }.stateIn(scope, SharingStarted.Lazily, null)
+    }.stateIn(scope, SharingStarted.Eagerly, null)
 
     val groupedMessages: StateFlow<Map<String, List<Message>>> =
         allMessages.map { allMsgs ->
@@ -134,7 +137,20 @@ class ChatsScreenViewModel : VModel {
                 selectChat(chat.uuid)
             },
             onDelete = {
-                dawson.deleteChat(chat)
+                notifications.sendAlertRequest(
+                    title = "Delete Chat",
+                    message = "Are you sure you want to permanently delete this chat?",
+                    detailMessage = "This action cannot be undone.",
+                    buttons = listOf(
+                        AlertButton("Cancel"),
+                        AlertButton(
+                            text = "Delete",
+                            style = AlertButton.ButtonStyle.DANGER
+                        ) {
+                            dawson.deleteChat(chat)
+                        }
+                    )
+                )
             }
         ).apply {
             selected = chat.uuid == selectedUUID
@@ -153,6 +169,24 @@ class ChatsScreenViewModel : VModel {
         dawson.updateChat(updatedChat)
     }
 
+    fun setModeRequest(mode: Agent.Mode) {
+        notifications.sendAlertRequest(
+            icon = AlertNotification.AlertIcon.WARNING,
+            title = "Switch to ${mode.label}?",
+            message = mode.description,
+            detailMessage = mode.warningMessage,
+            buttons = listOf(
+                AlertButton("Cancel"),
+                AlertButton(
+                    text = "Switch Mode",
+                    style = AlertButton.ButtonStyle.DANGER
+                ) {
+                    setMode(mode)
+                }
+            )
+        )
+    }
+
     fun setMode(mode: Agent.Mode) {
         val chatUUID = _chatUUIDSelected.value ?: return
         val agentUUID = dawson.activeChats.value.firstOrNull { it.uuid == chatUUID }?.agentUUID ?: return
@@ -167,6 +201,16 @@ class ChatsScreenViewModel : VModel {
         val agentUUID = dawson.activeChats.value.firstOrNull { it.uuid == chatUUID }?.agentUUID ?: return
         val updatedAgent = dawson.activeAgents.value.firstOrNull { it.uuid == agentUUID }?.copy(
             model = llmModel
+        ) ?: return
+        dawson.updateAgent(updatedAgent)
+    }
+
+    fun removeDirectory(directory: String) {
+        val chatUUID = _chatUUIDSelected.value ?: return
+        val agentUUID = dawson.activeChats.value.firstOrNull { it.uuid == chatUUID }?.agentUUID ?: return
+        val curAgent = dawson.activeAgents.value.firstOrNull { it.uuid == agentUUID }
+        val updatedAgent = curAgent?.copy(
+            directories = (curAgent.directories - directory)
         ) ?: return
         dawson.updateAgent(updatedAgent)
     }
@@ -211,6 +255,43 @@ class ChatsScreenViewModel : VModel {
             destinationUUID = agentUUID,
             type = msgType,
             chunks = mutableMapOf(0 to text),
+            delivered = false,
+            isStream = true
+        )
+        dawson.sendMessage(message, chatUUID)
+    }
+
+    fun retryPrompt(dataUUID: String) {
+        val userUUID = dawson.currentUserUUID.value ?: return
+        val chatUUID = _chatUUIDSelected.value ?: return
+        val agentUUID = dawson.getAgentUUIDForChat(chatUUID) ?: return
+        val messages = _chatMessages.value
+
+        val responseAlreadyCompleted = messages.any {
+            it.dataUUID == dataUUID &&
+            it.sourceUUID == agentUUID &&
+            it.destinationUUID == userUUID &&
+            ((it.type == Message.MsgType.TEXT_RESPONSE) || (it.type == Message.MsgType.DATA_RESPONSE)) &&
+            it.numChunks != null
+        }
+
+        if (responseAlreadyCompleted) return
+
+        val oldMessage = messages.firstOrNull {
+            it.dataUUID == dataUUID &&
+            it.sourceUUID == userUUID &&
+            it.destinationUUID == agentUUID &&
+            ((it.type == Message.MsgType.TEXT_PROMPT) || (it.type == Message.MsgType.DATA_RESPONSE))
+        } ?: return
+
+        val msgType = Message.MsgType.TEXT_PROMPT
+        val message = Message(
+            uuid = msgType.getStreamUUID(dataUUID),
+            dataUUID = dataUUID,
+            sourceUUID = userUUID,
+            destinationUUID = agentUUID,
+            type = msgType,
+            chunks = oldMessage.chunks.toMutableMap(),
             delivered = false,
             isStream = true
         )

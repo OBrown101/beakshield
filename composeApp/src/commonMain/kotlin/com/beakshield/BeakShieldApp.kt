@@ -1,6 +1,7 @@
 package com.beakshield
 
 import com.beakshield.dawson.Dawson
+import com.beakshield.notifications.Notifications
 import com.beakshield.viewModels.AgentsScreenViewModel
 import com.beakshield.viewModels.BaseScreenViewModel
 import com.beakshield.viewModels.ChatsScreenViewModel
@@ -19,6 +20,10 @@ object BeakShieldApp {
 
     val dawson by lazy {
         Dawson()
+    }
+
+    val notifications: Notifications by lazy {
+        Notifications()
     }
 
     val baseScreenViewModel by lazy {
@@ -64,6 +69,7 @@ object BeakShieldApp {
         }
         preferences
         dawson
+        notifications
 
         baseScreenViewModel
         mainScreenViewModel
