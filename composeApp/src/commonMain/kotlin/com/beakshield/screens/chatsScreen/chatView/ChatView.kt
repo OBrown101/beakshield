@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -64,6 +65,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -140,14 +142,18 @@ fun ChatView(
     }
 
     LaunchedEffect(listState) {
-        // Updates whether user is near the bottom
         snapshotFlow {
             val layoutInfo = listState.layoutInfo
-            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            val visibleItems = layoutInfo.visibleItemsInfo
+            if (visibleItems.isEmpty()) return@snapshotFlow false
+
+            val lastItem = visibleItems.last()
             val totalItems = layoutInfo.totalItemsCount
-            (lastVisible >= (totalItems - 2)) // "near bottom" threshold
-        }.collect { nearBottom ->
-            stickToBottom = nearBottom
+
+            // User is at bottom if last item is visible and is the last item
+            lastItem.index == totalItems - 1
+        }.collect { atBottom ->
+            stickToBottom = atBottom
         }
     }
 
@@ -156,31 +162,26 @@ fun ChatView(
         val lastItem = groupedMessages.entries.toList().lastIndex
         if (lastItem >= 0) {
             listState.scrollToItem(lastItem)
-
+            // Let layout settle before adjusting
             listState.layoutInfo.visibleItemsInfo
-                .firstOrNull { it.index == lastItem }
-                ?.let { item ->
+                .lastOrNull()?.let { item ->
                     val viewportHeight = listState.layoutInfo.viewportEndOffset - listState.layoutInfo.viewportStartOffset
-                    val extraOffset = (item.size - viewportHeight).coerceAtLeast(0)
-                    listState.scrollBy(extraOffset.toFloat())
+                    if (item.size > viewportHeight) {
+                        val extraOffset = (item.size - viewportHeight).coerceAtLeast(0)
+                        listState.scrollBy(extraOffset.toFloat())
+                    }
                 }
         }
         stickToBottom = true
     }
 
-    LaunchedEffect(groupedMessages.keys.toList(), messageScrollKey) {
-        // New message auto-scroll (if user at bottom)
-        val lastItem = groupedMessages.entries.toList().lastIndex
-        if (lastItem >= 0 && stickToBottom) {
-            listState.animateScrollToItem(lastItem)
-
-            listState.layoutInfo.visibleItemsInfo
-                .firstOrNull { it.index == lastItem }
-                ?.let { item ->
-                    val viewportHeight = listState.layoutInfo.viewportEndOffset - listState.layoutInfo.viewportStartOffset
-                    val extraOffset = (item.size - viewportHeight).coerceAtLeast(0)
-                    listState.animateScrollBy(extraOffset.toFloat())
-                }
+    LaunchedEffect(groupedMessages.keys.size) {
+        // Only trigger on actual new message group, not during streaming
+        if (stickToBottom) {
+            val lastItem = groupedMessages.entries.toList().lastIndex
+            if (lastItem >= 0) {
+                listState.animateScrollToItem(lastItem)
+            }
         }
     }
 
@@ -515,16 +516,10 @@ fun DirectoriesBox(
                             color = borderColor.copy(alpha = 0.75f),
                             shape = outerShape
                         )
-                        .padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 8.dp)
+                        .wrapContentWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 5.dp),
-                        text = dir,
-                        color = textPrimaryColor,
-                        fontSize = 12.sp,
-                        overflow = TextOverflow.Ellipsis
-                    )
                     IconButton(
                         modifier = Modifier
                             .clip(CircleShape)
@@ -538,6 +533,16 @@ fun DirectoriesBox(
                             tint = textPrimaryColor
                         )
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        modifier = Modifier,
+                        text = dir,
+                        color = textPrimaryColor,
+                        fontSize = 12.sp,
+                        overflow = TextOverflow.StartEllipsis,
+                        textAlign = TextAlign.Start,
+                        maxLines = 1
+                    )
                 }
             }
         }

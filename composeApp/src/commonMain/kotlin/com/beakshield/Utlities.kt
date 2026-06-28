@@ -30,7 +30,7 @@ fun Int.formatWithSuffix(): String = when {
     else -> this.toString()
 }
 
-fun String.capitalizeString(): String = this.replaceFirstChar { it.uppercaseChar() }
+fun String.capitalizeString(): String = this.lowercase().replaceFirstChar { it.uppercaseChar() }
 
 fun formatTimestamp(lastTimestamp: Long?): String? {
     if (lastTimestamp == null || lastTimestamp == 0L) return null
