@@ -1,8 +1,10 @@
 package com.beakshield.viewModels
 
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.beakshield.BeakShieldApp.baseScreenViewModel
 import com.beakshield.BeakShieldApp.dawson
 import com.beakshield.BeakShieldApp.notifications
@@ -74,10 +76,10 @@ class ChatsScreenViewModel : VModel {
         }.stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     init {
-        setRailContent(width = 340) { modifier ->
+        setRailContent(width = 370) { modifier ->
             val chatCellViewModels = chatCellViewModels.collectAsState()
             ChatsSideRail(
-                modifier = modifier,
+                modifier = modifier.width(370.dp),
                 chatCellViewModels = chatCellViewModels.value,
                 onSearchChanged = {
                     _searchText.value = it
@@ -170,20 +172,19 @@ class ChatsScreenViewModel : VModel {
     }
 
     fun setModeRequest(mode: Agent.Mode) {
+        val buttons = mutableListOf(AlertButton("Cancel"))
+        if (mode.permittedNotDev) {
+            buttons.add(AlertButton(text = "Switch Mode", style = AlertButton.ButtonStyle.DANGER) {
+                setMode(mode)
+            })
+        }
+
         notifications.sendAlertRequest(
             icon = AlertNotification.AlertIcon.WARNING,
             title = "Switch to ${mode.label}?",
             message = mode.description,
             detailMessage = mode.warningMessage,
-            buttons = listOf(
-                AlertButton("Cancel"),
-                AlertButton(
-                    text = "Switch Mode",
-                    style = AlertButton.ButtonStyle.DANGER
-                ) {
-                    setMode(mode)
-                }
-            )
+            buttons = buttons
         )
     }
 

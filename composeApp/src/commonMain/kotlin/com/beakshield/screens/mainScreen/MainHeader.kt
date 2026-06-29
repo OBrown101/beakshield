@@ -65,8 +65,8 @@ fun MainBg() {
 @Composable
 fun MainHeader(
     modifier: Modifier = Modifier,
-    title: String = "Good Evening, Ethan",
-    statusText: String = "I've been monitoring your systems today\nEverything appears to be running smoothly.",
+    title: String = "Welcome to Beakshield",
+    statusText: String = "Your Gateway to Effortless AI Agent Management with DAWSON",
     onStartChat: () -> Unit
 ) {
     val btnTextStyle = TextStyle(

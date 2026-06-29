@@ -42,6 +42,17 @@ data class Agent(
         RESPONDING,
         ERROR;
 
+        val isAwaitingResponse: Boolean
+            get() = when (this) {
+                READY -> false
+                AWAITING_INPUT -> false
+                PROCESSING -> true
+                THINKING -> true
+                ACTING -> true
+                RESPONDING -> true
+                ERROR -> false
+            }
+
         val label: String
             get() = when (this) {
                 READY -> "Ready"
@@ -111,7 +122,15 @@ data class Agent(
                 EGG -> null
                 FLEDGLING -> null
                 WARRIOR -> "Only use if you trust your agent and model assigned."
-                ULTIMATE -> "CAUTION: Mode is untested and dangerous for host system. May make unrepairable changes."
+                ULTIMATE -> "NOT AVAILABLE FOR PUBLIC\nCAUTION: Mode is untested and dangerous for host system. May make unrepairable changes."
+            }
+
+        val permittedNotDev: Boolean
+            get() = when (this) {
+                EGG -> true
+                FLEDGLING -> true
+                WARRIOR -> true
+                ULTIMATE -> false
             }
     }
 

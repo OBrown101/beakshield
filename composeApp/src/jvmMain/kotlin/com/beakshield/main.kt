@@ -1,17 +1,18 @@
 package com.beakshield
 
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import java.awt.Dimension
 import java.awt.Taskbar
 import java.awt.Toolkit
 
 fun main() = application {
     val windowState = rememberWindowState(
-        // TODO: Remove these once adaptive setup
-        placement = WindowPlacement.Floating
+        placement = WindowPlacement.Floating,
+        width = 950.dp,
+        height = 900.dp
     )
 
     setDesktopIcon()
@@ -22,7 +23,6 @@ fun main() = application {
         resizable = true,
         state = windowState
     ) {
-        window.minimumSize = Dimension(900, 950)
 
         App()
     }

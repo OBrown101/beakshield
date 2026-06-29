@@ -57,7 +57,6 @@ fun ChatsSideRail(
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .width(320.dp)
             .background(backgroundColor)
             .padding(20.dp)
     ) {

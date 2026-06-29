@@ -33,6 +33,7 @@ import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material3.Icon
@@ -61,6 +62,8 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -258,7 +261,7 @@ fun ChatView(
             value = userInput,
             onValueChange = { userInput = it },
             directories = agent.directories,
-            awaitingResponse = (agent.state != Agent.AgentState.READY),
+            awaitingResponse = agent.state.isAwaitingResponse,
             onRemoveDirectory = onDeleteDirectory,
             onAttachClick = {
                 attachDirectory()
@@ -492,6 +495,8 @@ fun DirectoriesBox(
     directories: List<String>,
     onRemoveDirectory: (String) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val clipboardManager = LocalClipboardManager.current
     val scrollState = rememberScrollState()
     val outerShape = RoundedCornerShape(24.dp)
 
@@ -530,6 +535,24 @@ fun DirectoriesBox(
                         Icon(
                             imageVector = Icons.Outlined.Close,
                             contentDescription = "Remove",
+                            tint = textPrimaryColor
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(cardColor)
+                            .size(15.dp),
+                        onClick = {
+                            scope.launch {
+                                clipboardManager.setText(AnnotatedString(dir))
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.ContentCopy,
+                            contentDescription = "Copy",
                             tint = textPrimaryColor
                         )
                     }
