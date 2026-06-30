@@ -10,7 +10,7 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 expect val isJvm: Boolean
-expect suspend fun pickFilePath(): String?
+expect fun pickFilePath(): String?
 
 expect fun dawsonHttpClient(expectedCertFingerprint: String): HttpClient
 

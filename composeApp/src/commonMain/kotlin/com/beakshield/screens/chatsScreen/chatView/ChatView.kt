@@ -120,12 +120,10 @@ fun ChatView(
         }
 
     fun attachDirectory() {
-        scope.launch {
-            val trimmed = userInput.text.trim()
-            val path = if (isJvm) pickFilePath() else trimmed.takeIf { it.isNotEmpty() }
-            path?.let {
-                onAttachClick(it)
-            }
+        val trimmed = userInput.text.trim()
+        val path = if (isJvm) pickFilePath() else trimmed.takeIf { it.isNotEmpty() }
+        path?.let {
+            onAttachClick(it)
         }
     }
 
