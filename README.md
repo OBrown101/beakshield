@@ -20,6 +20,12 @@ Whether you're chatting with AI agents, configuring local or frontier models, re
 
 ---
 
+<p align="center">
+  <img src="assets/screenshots/MainScreen.png" width="700">
+</p>
+
+---
+
 # Why Beakshield?
 
 DAWSON intentionally focuses on being a capable, portable AI server.
@@ -58,6 +64,12 @@ Directory workspaces, permission modes, and security settings can all be configu
 
 ---
 
+<p align="center">
+  <img src="assets/screenshots/ChatScreen.png" width="700">
+</p>
+
+---
+
 ## 🤖 Model Management *[Working]*
 
 Switch between local and frontier models with ease.
@@ -75,6 +87,12 @@ Beakshield provides a unified interface for configuring providers including:
 Most DAWSON configuration can be performed directly through Beakshield.
 
 Rather than manually editing server settings, users can manage providers, server behavior, networking, and future system capabilities through a dedicated interface.
+
+---
+
+<p align="center">
+  <img src="assets/screenshots/SystemScreen.png" width="700">
+</p>
 
 ---
 
