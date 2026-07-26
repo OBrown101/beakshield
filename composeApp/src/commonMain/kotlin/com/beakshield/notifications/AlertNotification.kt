@@ -1,4 +1,4 @@
-package org.legionarius.vector.notifications
+package com.beakshield.notifications
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.beakshield.dangerColor
 import com.beakshield.infoColor
 import com.beakshield.lightGreenColor
-import com.beakshield.notifications.AlertButton
 import com.beakshield.primaryColor
 import com.beakshield.warningColor
 

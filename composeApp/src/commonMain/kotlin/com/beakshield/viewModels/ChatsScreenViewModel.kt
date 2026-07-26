@@ -13,6 +13,7 @@ import com.beakshield.dawson.Chat
 import com.beakshield.dawson.LLMModel
 import com.beakshield.dawson.Message
 import com.beakshield.notifications.AlertButton
+import com.beakshield.notifications.AlertNotification
 import com.beakshield.screens.Destination
 import com.beakshield.screens.chatsScreen.ChatsSideRail
 import com.beakshield.tablecells.ChatCellViewModel
@@ -29,7 +30,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.legionarius.vector.notifications.AlertNotification
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 

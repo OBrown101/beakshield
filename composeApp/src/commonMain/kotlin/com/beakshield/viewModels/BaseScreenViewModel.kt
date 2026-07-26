@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.legionarius.vector.notifications.AlertNotification
+import com.beakshield.notifications.AlertNotification
 
 class BaseScreenViewModel {
     private val scope = CoroutineScope(Dispatchers.Main)

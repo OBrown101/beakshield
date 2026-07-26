@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,8 +44,10 @@ import androidx.navigation.compose.rememberNavController
 import beakshield.composeapp.generated.resources.Res
 import beakshield.composeapp.generated.resources.main_bg
 import beakshield.composeapp.generated.resources.nav_insignia
+import com.beakshield.BuildInfo
 import com.beakshield.backgroundColor
 import com.beakshield.dawsonGold
+import com.beakshield.notifications.AlertNotification
 import com.beakshield.notifications.AlertView
 import com.beakshield.screens.AppNavHost
 import com.beakshield.screens.Destination
@@ -55,7 +58,6 @@ import com.beakshield.viewModels.BaseScreenViewModel
 import com.beakshield.viewModels.ChatsScreenViewModel
 import com.beakshield.viewModels.MainScreenViewModel
 import org.jetbrains.compose.resources.painterResource
-import org.legionarius.vector.notifications.AlertNotification
 
 @Composable
 fun BaseScreen(
@@ -161,7 +163,7 @@ fun MainBase(
             ) {
                 Column(
                     modifier = Modifier
-                        .height(800.dp)
+                        .height(815.dp)
                         .align(Alignment.TopStart)
                         .then(scrollModifier)
                 ) {
@@ -188,6 +190,25 @@ fun MainBase(
                             navToScreen = navToScreen
                         )
                     }
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 1.dp)
+                        .background(backgroundColor)
+                        .align(Alignment.BottomCenter)
+                ) {
+                    Text(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(vertical = 20.dp),
+                        text = "v${BuildInfo.VERSION}\n(${BuildInfo.BUILD})",
+                        color = textColor.copy(alpha = 0.55f),
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Serif,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 11.sp
+                    )
                 }
             }
             AlertView(

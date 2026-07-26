@@ -42,7 +42,6 @@ import com.beakshield.infoColor
 import com.beakshield.textPrimaryColor
 import com.beakshield.textSecondaryColor
 import kotlinx.coroutines.launch
-import org.legionarius.vector.notifications.AlertNotification
 
 
 @Composable
