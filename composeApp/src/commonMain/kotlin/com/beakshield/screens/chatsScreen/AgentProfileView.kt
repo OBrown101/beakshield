@@ -362,7 +362,9 @@ fun ModelDropdown(
     Box(
         modifier = modifier
     ) {
-        val modelItems = providers.flatMap { it.models }.map { model ->
+        val modelItems = providers.flatMap { provider ->
+            provider.preferredModels.sortedByDescending { it.id == provider.defaultModelID }
+        }.map { model ->
             DropdownItem(
                 value = model,
                 label = model.name,

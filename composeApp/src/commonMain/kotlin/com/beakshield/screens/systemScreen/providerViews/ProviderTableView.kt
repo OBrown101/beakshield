@@ -72,7 +72,7 @@ fun ProviderTableCell(
     val provider = cellViewModel.provider
     val needsConfig by remember(provider) {
         derivedStateOf {
-            (provider.apiKey.isEmpty() && provider.models.isEmpty())
+            (provider.apiKey.isEmpty() && provider.availableModels.isEmpty())
         }
     }
 
@@ -110,7 +110,7 @@ fun ProviderTableCell(
                 text = buildAnnotatedString {
                     withStyle(style = SpanStyle(textPrimaryColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)) { append(provider.type.label + "\n") }
                     withStyle(style = SpanStyle(textSecondaryColor, fontSize = 12.sp, fontWeight = FontWeight.Normal)) {
-                        append("${provider.models.count()} Model(s)")
+                        append("${provider.availableModels.count()} Model(s)")
                     }
                 },
                 lineHeight = 17.sp,

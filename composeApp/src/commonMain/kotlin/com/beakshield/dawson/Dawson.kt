@@ -231,9 +231,16 @@ class Dawson {
         socket.send(userData, UserData::class, USER_DATA)
     }
 
-    fun updateProviderAPIKeys(apiKeys: Map<Provider.ProviderType, String>) {
+    fun loginOAuth(type: Provider.ProviderType) {
         val userUUID = _currentUserUUID.value ?: return
-        val payload = WebSocketClient.json.encodeToJsonElement(serializer<Map<Provider.ProviderType, String>>(), apiKeys)
+        val payload = WebSocketClient.json.encodeToJsonElement(serializer<Provider.ProviderType>(), type)
+        val configData = ConfigData(userUUID, dataType = ConfigData.DataType.LOGIN_OAUTH, payload = payload)
+        socket.send(configData, ConfigData::class, CONFIG_DATA)
+    }
+
+    fun updateProvider(provider: Provider) {
+        val userUUID = _currentUserUUID.value ?: return
+        val payload = WebSocketClient.json.encodeToJsonElement(serializer<Provider>(), provider)
         val configData = ConfigData(userUUID, dataType = ConfigData.DataType.UPDATE_PROVIDER, payload = payload)
         socket.send(configData, ConfigData::class, CONFIG_DATA)
     }
@@ -292,8 +299,14 @@ class Dawson {
                 fetchUser(uuid)
             }
         }
-        data.providerStates.forEach { (uuid, lastUpdated) ->
-            // TODO: When/if server persists provider list then need to change this
+        data.providerStates.forEach { (type, lastUpdated) ->
+            _activeProviders.value.firstOrNull { it.type.label == type }?.let {
+                if (it.updatedTimestamp < lastUpdated) {
+                    fetchProvider(type)
+                }
+            } ?: run {
+                fetchProvider(type)
+            }
         }
         data.chatStates.forEach { (uuid, lastUpdated) ->
             _activeChats.value.firstOrNull { it.uuid == uuid }?.let {
@@ -496,6 +509,7 @@ class Dawson {
                 }
                 println("Synced (${providers.count()}) providers.")
             }
+            ConfigData.DataType.LOGIN_OAUTH -> {}
         }
     }
 
@@ -592,7 +606,10 @@ class Dawson {
                 oldProviders.toMutableList().apply {
                     this[index] = oldProviders[index].copy(
                         apiKey = provider.apiKey,
-                        models = provider.models,
+                        useOAuth = provider.useOAuth,
+                        availableModels = provider.availableModels,
+                        preferredModelIDs = provider.preferredModelIDs,
+                        defaultModelID = provider.defaultModelID,
                         updatedTimestamp = Clock.System.now().toEpochMilliseconds()
                     )
                 }
@@ -672,8 +689,9 @@ class Dawson {
         socket.send(chatData, ChatData::class, CHAT_DATA)
     }
 
-    private fun fetchProvider(providerType: Provider.ProviderType) {
-        val payload = WebSocketClient.json.encodeToJsonElement(serializer<Provider.ProviderType>(), providerType)
+    private fun fetchProvider(providerType: String) {
+        val type = Provider.ProviderType.fromString(providerType) ?: return
+        val payload = WebSocketClient.json.encodeToJsonElement(serializer<Provider.ProviderType>(), type)
         val configData = ConfigData(dataType = ConfigData.DataType.SYNC_PROVIDERS, payload = payload)
         socket.send(configData, ConfigData::class, CONFIG_DATA)
     }
@@ -719,7 +737,6 @@ class Dawson {
         fetchUsers()
         fetchProviders()
         fetchChats()
-//        fetchAllChatMessages()
     }
 
     companion object {

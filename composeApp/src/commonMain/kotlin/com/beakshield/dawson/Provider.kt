@@ -8,9 +8,18 @@ import kotlin.time.Clock
 data class Provider(
     val type: ProviderType,
     var apiKey: String = "",
-    var models: List<LLMModel> = emptyList(),
+    var useOAuth: Boolean = false,
+    var availableModels: List<LLMModel> = emptyList(),
+    var preferredModelIDs: List<String> = emptyList(),
+    var defaultModelID: String = "",
     val updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
 ) {
+
+    val preferredModels: List<LLMModel>
+        get() = availableModels.filter { preferredModelIDs.contains(it.id) }
+
+    val defaultModel: LLMModel?
+        get() = availableModels.firstOrNull { it.id == defaultModelID }
 
     @Serializable
     enum class ProviderType {
@@ -31,29 +40,40 @@ data class Provider(
                 OPENAI -> "OA"
                 ANTHROPIC -> "A"
             }
-    }
 
+        val supportsOAuth: Boolean
+            get() = when (this) {
+                OLLAMA -> false
+                OPENAI -> true
+                ANTHROPIC -> false
+            }
 
-    companion object {
-        val defaultProvider = Provider(
-            type = ProviderType.OLLAMA,
-            models = emptyList(),
-        )
+        companion object {
+            fun fromString(label: String): ProviderType? {
+                return when (label) {
+                    OLLAMA.label -> OLLAMA
+                    OPENAI.label -> OPENAI
+                    ANTHROPIC.label -> ANTHROPIC
+                    else -> null
+                }
+            }
+
+        }
     }
 
     object MockProvider {
         val mockProviders = listOf(
             Provider(
                 type = ProviderType.OLLAMA,
-                models = MockLLMModel.mockLLMModels.filter { it.provider == ProviderType.OLLAMA }
+                availableModels = MockLLMModel.mockLLMModels.filter { it.provider == ProviderType.OLLAMA }
             ),
             Provider(
                 type = ProviderType.OPENAI,
-                models = MockLLMModel.mockLLMModels.filter { it.provider == ProviderType.OPENAI }
+                availableModels = MockLLMModel.mockLLMModels.filter { it.provider == ProviderType.OPENAI }
             ),
             Provider(
                 type = ProviderType.ANTHROPIC,
-                models = MockLLMModel.mockLLMModels.filter { it.provider == ProviderType.ANTHROPIC }
+                availableModels = MockLLMModel.mockLLMModels.filter { it.provider == ProviderType.ANTHROPIC }
             )
         )
     }

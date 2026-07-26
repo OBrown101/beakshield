@@ -23,7 +23,8 @@ data class ConfigData(
         DELETE_USER,
         SYNC_USERS,
         UPDATE_PROVIDER,
-        SYNC_PROVIDERS;
+        SYNC_PROVIDERS,
+        LOGIN_OAUTH;
     }
 
     @OptIn(InternalSerializationApi::class)

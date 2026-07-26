@@ -123,9 +123,14 @@ fun SystemScreen(
             ProviderConfigView(
                 modifier = Modifier.width(375.dp),
                 provider = providers.firstOrNull { it.type == providerTypeSelected },
-                onSave = {
-                    systemScreenViewModel.updateAPIKey(it)
+                onSave = { apiKey, useOAuth, preferredModelIDs, defaultModelID ->
+                    systemScreenViewModel.updateProvider(apiKey, useOAuth, preferredModelIDs, defaultModelID)
                     systemScreenViewModel.selectProvider(null)
+                },
+                onLogin = {
+                    providerTypeSelected?.let {
+                        dawson.loginOAuth(it)
+                    }
                 },
                 onCancel = {
                     systemScreenViewModel.selectProvider(null)

@@ -57,9 +57,15 @@ class SystemScreenViewModel : VModel {
         _providerTypeSelected.value = provider?.type
     }
 
-    fun updateAPIKey(apiKey: String) {
+    fun updateProvider(apiKey: String, useOAuth: Boolean, preferredModelIDs: List<String>, defaultModelID: String) {
         val type = _providerTypeSelected.value ?: return
-        dawson.updateProviderAPIKeys(mapOf(type to apiKey))
+        val updatedProvider = dawson.activeProviders.value.firstOrNull { it.type == type }?.copy(
+            apiKey = apiKey,
+            useOAuth = useOAuth,
+            preferredModelIDs = preferredModelIDs,
+            defaultModelID = defaultModelID
+        ) ?: return
+        dawson.updateProvider(updatedProvider)
     }
 
     fun saveConnectToServer(server: Server) {
