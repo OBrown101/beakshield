@@ -134,6 +134,7 @@ fun ProfileView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = padBetween.dp),
+                enabled = (!(agent?.isPrimaryAgent ?: true)),   // Disabled edit if primary or null
                 value = titleProvided ?: "---",
                 onValueChange = {
                     titleProvided = it
@@ -158,23 +159,25 @@ fun ProfileView(
                         ) {
                             innerTextField()
                         }
-                        Icon(
-                            modifier = Modifier
-                                .size(22.dp)
-                                .clickable(enabled = editMode) {
-                                    val text = titleProvided ?: return@clickable
-                                    if (text.isNotEmpty()) {
-                                        onTitleChange(text)
+                        if (!(agent?.isPrimaryAgent ?: true)) {
+                            Icon(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clickable(enabled = editMode) {
+                                        val text = titleProvided ?: return@clickable
+                                        if (text.isNotEmpty()) {
+                                            onTitleChange(text)
+                                        }
                                     }
-                                }
-                                .clip(CircleShape)
-                                .background(titleIconBgColor)
-                                .then(titleIconModifier),
-                            imageVector = if (editMode) Icons.Default.Check else Icons.Default.Edit,
-                            contentDescription = "",
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
+                                    .clip(CircleShape)
+                                    .background(titleIconBgColor)
+                                    .then(titleIconModifier),
+                                imageVector = if (editMode) Icons.Default.Check else Icons.Default.Edit,
+                                contentDescription = "",
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
                 }
             )

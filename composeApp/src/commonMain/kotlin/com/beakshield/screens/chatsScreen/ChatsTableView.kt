@@ -3,13 +3,10 @@ package com.beakshield.screens.chatsScreen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,10 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.beakshield.borderColor
-import com.beakshield.cardColor
 import com.beakshield.composables.TableView
-import com.beakshield.dawsonGold
 import com.beakshield.dawsonRed
 import com.beakshield.formatTimestamp
 import com.beakshield.primaryColor
@@ -84,20 +78,25 @@ fun ChatTableCell(
             .padding(horizontal = 10.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(42.dp)
-                .clip(CircleShape)
-                .background(cardColor)
-                .border(
-                    width = 1.dp,
-                    color = if (cellViewModel.selected) dawsonGold else borderColor,
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            // TODO: add chat profile handling (probably be some icon that represents the chat content)
-        }
+//        Box(
+//            modifier = Modifier
+//                .size(42.dp)
+//                .clip(CircleShape)
+//                .background(cardColor)
+//                .border(
+//                    width = 1.dp,
+//                    color = if (cellViewModel.selected) dawsonGold else borderColor,
+//                    shape = CircleShape
+//                ),
+//            contentAlignment = Alignment.Center
+//        ) {
+//            Image(
+//                modifier = Modifier.align(Alignment.Center),
+//                painter = painterResource(cellViewModel.agentType.image),
+//                contentDescription = null,
+//                contentScale = ContentScale.Fit
+//            )
+//        }
 
         Column(
             modifier = Modifier

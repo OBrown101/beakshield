@@ -8,6 +8,7 @@ import beakshield.composeapp.generated.resources.squirebot_profile
 import com.beakshield.capitalizeString
 import com.beakshield.dangerColor
 import com.beakshield.darkGreenColor
+import com.beakshield.dawson.Dawson.Companion.PRIMARY_AGENT_UUID
 import com.beakshield.infoColor
 import com.beakshield.lightGreenColor
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,7 @@ import kotlin.time.Clock
 data class Agent(
     val uuid: String,
     val userUUID: String,
+    val parentAgentUUID: String? = null,
     val type: AgentType = AgentType.SQUIREBOT,
     var mode: Mode = Mode.EGG,
     var model: LLMModel,
@@ -32,6 +34,9 @@ data class Agent(
     var updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
 ) {
     @Transient private val scope = CoroutineScope(Dispatchers.Default)
+
+    val isPrimaryAgent: Boolean
+        get() = (uuid == PRIMARY_AGENT_UUID)
 
     enum class AgentState {
         READY,

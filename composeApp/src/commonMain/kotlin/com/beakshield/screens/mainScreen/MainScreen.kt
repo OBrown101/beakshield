@@ -35,6 +35,16 @@ fun MainScreen(
                 onStartChat = {
                     navToScreen(Destination.CHATS)
                     chatsScreenViewModel.startNewChat()
+                },
+                onDawsonChat = { prompt ->
+                    prompt?.let {
+                        navToScreen(Destination.CHATS)
+                        chatsScreenViewModel.startPrimaryChat()
+                        chatsScreenViewModel.sendTextPrompt(prompt)
+                    } ?: run {
+                        navToScreen(Destination.CHATS)
+                        chatsScreenViewModel.startPrimaryChat()
+                    }
                 }
             )
             DashboardStatus(

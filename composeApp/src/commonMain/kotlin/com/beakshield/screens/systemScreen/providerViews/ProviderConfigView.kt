@@ -65,8 +65,7 @@ fun ProviderConfigView(
     if (provider == null) return
 
     var apiKeyProvided by remember(provider.type) { mutableStateOf(provider.apiKey) }
-//    var useOAuth by remember(provider.type) { mutableStateOf(provider.useOAuth) }
-    var useOAuth = true
+    var useOAuth by remember(provider.type) { mutableStateOf(provider.useOAuth) }
     var defaultModelID by remember(provider.type) { mutableStateOf(provider.defaultModelID) }
     val preferredModelIDs = remember(provider.type) {
         mutableStateListOf<String>().apply { addAll(provider.preferredModelIDs) }

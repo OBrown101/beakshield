@@ -49,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -100,6 +101,7 @@ fun ChatView(
     groupedMessages: Map<String, List<Message>>,
     pendingInputRequests: List<UserInputRequest> = emptyList(),
     userUUIDSelected: String,
+    inputEnabled: Boolean = true,
     onSendMessage: (String) -> Unit,
     onRetry: (String) -> Unit,
     onRespondToRequest: (UserInputResponse) -> Unit,
@@ -259,6 +261,7 @@ fun ChatView(
             value = userInput,
             onValueChange = { userInput = it },
             directories = agent.directories,
+            enabled = inputEnabled,
             awaitingResponse = agent.state.isAwaitingResponse,
             onRemoveDirectory = onDeleteDirectory,
             onAttachClick = {
@@ -308,6 +311,7 @@ private fun UserInputBar(
     userInputFocusReq: FocusRequester,
     value: TextFieldValue,
     directories: List<String>,
+    enabled: Boolean,
     awaitingResponse: Boolean,
     onRemoveDirectory: (String) -> Unit,
     onValueChange: (TextFieldValue) -> Unit,
@@ -316,10 +320,10 @@ private fun UserInputBar(
     onSendClick: () -> Unit,
     onCancel: () -> Unit,
 ) {
-
     val outerShape = RoundedCornerShape(24.dp)
     val inputShape = RoundedCornerShape(16.dp)
     val btnSize = 55
+    val disabledHeight = 20
     val btnIconSize = 22
     val textFieldFont = 14
 
@@ -331,7 +335,6 @@ private fun UserInputBar(
             onSendClick()
         }
     }
-
 
     fun handleKeyEvent(event: KeyEvent): Boolean {
         return if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
@@ -360,14 +363,30 @@ private fun UserInputBar(
                 color = borderColor.copy(alpha = 0.75f),
                 shape = outerShape
             )
-            .padding(horizontal = 13.dp, vertical = 13.dp),
+            .padding(horizontal = 13.dp, vertical = 13.dp)
+            .alpha(if (enabled) 1f else 0.6f),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        if (!enabled) {
+            Box(
+                modifier = Modifier.height(disabledHeight.dp)
+            ) {
+                Text(
+                    modifier = Modifier.align(Alignment.Center),
+                    text = " • Chat operated by Dawson • ",
+                    color = textSecondaryColor.copy(alpha = 0.75f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal
+                )
+            }
+            return@Column
+        }
         DirectoriesBox(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 96.dp)
                 .padding(horizontal = 8.dp),
+            enabled = enabled,
             directories = directories,
             onRemoveDirectory = onRemoveDirectory
         )
@@ -378,6 +397,7 @@ private fun UserInputBar(
         ) {
             SquareRoundedIconBtn(
                 modifier = Modifier,
+                enabled = enabled,
                 btnSize = btnSize,
                 bgColor = cardColor,
                 borderColor = borderColor.copy(alpha = 0.85f),
@@ -429,6 +449,7 @@ private fun UserInputBar(
                             userInputFocusReq.requestFocus()
                         })
                     },
+                enabled = enabled,
                 value = value,
                 onValueChange = onValueChange,
                 textStyle = TextStyle(
@@ -463,7 +484,7 @@ private fun UserInputBar(
                 btnSize = btnSize,
                 bgColor = dawsonRed,
                 borderColor = dangerColor.copy(alpha = 0.35f),
-                enabled = value.text.isNotBlank() || awaitingResponse,
+                enabled = enabled && (value.text.isNotBlank() || awaitingResponse),
                 onClick = {
                     handleClick()
                 },
@@ -490,6 +511,7 @@ private fun UserInputBar(
 @Composable
 fun DirectoriesBox(
     modifier: Modifier = Modifier,
+    enabled: Boolean,
     directories: List<String>,
     onRemoveDirectory: (String) -> Unit
 ) {
@@ -528,6 +550,7 @@ fun DirectoriesBox(
                             .clip(CircleShape)
                             .background(cardColor)
                             .size(20.dp),
+                        enabled = enabled,
                         onClick = { onRemoveDirectory(dir) }
                     ) {
                         Icon(

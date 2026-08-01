@@ -192,7 +192,7 @@ class Dawson {
 
     fun startPrimaryChat(): Chat? {
         val userUUID = _currentUserUUID.value ?: return null
-        if (_activeChats.value.any { (it.uuid == PRIMARY_CHAT_UUID) && it.userUUID == userUUID }) return null
+        _activeChats.value.firstOrNull { (it.uuid == PRIMARY_CHAT_UUID) && (it.userUUID == userUUID) }?.let { return it }
 
         val newChat = Chat(PRIMARY_CHAT_UUID, userUUID, PRIMARY_AGENT_UUID)
         val chatData = ChatData(
@@ -542,6 +542,7 @@ class Dawson {
                 oldAgents.toMutableList().apply {
                     this[index] = current.copy(
                         state = agent.state,
+                        parentAgentUUID = agent.parentAgentUUID,
                         mode = agent.mode,
                         model = agent.model,
                         directories = agent.directories,

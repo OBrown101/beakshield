@@ -10,6 +10,7 @@ import com.beakshield.BeakShieldApp.dawson
 import com.beakshield.BeakShieldApp.notifications
 import com.beakshield.dawson.Agent
 import com.beakshield.dawson.Chat
+import com.beakshield.dawson.Dawson
 import com.beakshield.dawson.LLMModel
 import com.beakshield.dawson.Message
 import com.beakshield.notifications.AlertButton
@@ -70,6 +71,13 @@ class ChatsScreenViewModel : VModel {
 
     private val _searchText = MutableStateFlow("")
 
+    val primaryChatCellViewModel: StateFlow<ChatCellViewModel?> =
+        combine(dawson.activeChats, _chatUUIDSelected) { chats, selectedUUID ->
+            chats.firstOrNull { it.uuid == Dawson.PRIMARY_CHAT_UUID }?.let { chat ->
+                getChatCellViewModel(0, chat, selectedUUID)
+            }
+        }.stateIn(scope, SharingStarted.Eagerly, null)
+
     val chatCellViewModels: StateFlow<List<ChatCellViewModel>> =
         combine(dawson.activeChats, _searchText, _chatUUIDSelected) { chats, searchText, selectedUUID ->
             buildChatCellViewModels(chats, searchText, selectedUUID)
@@ -78,15 +86,19 @@ class ChatsScreenViewModel : VModel {
     init {
         setRailContent(width = 370) { modifier ->
             val chatCellViewModels = chatCellViewModels.collectAsState()
+            val primaryChatCellViewModel = primaryChatCellViewModel.collectAsState()
             ChatsSideRail(
                 modifier = modifier.width(370.dp),
+                primaryChatCellViewModel = primaryChatCellViewModel.value,
                 chatCellViewModels = chatCellViewModels.value,
                 onSearchChanged = {
                     _searchText.value = it
                 },
-                onBack = { baseScreenViewModel.navToScreen(Destination.MAIN) },
                 onNewChat = {
                     startNewChat()
+                },
+                onBack = {
+                    baseScreenViewModel.navToScreen(Destination.MAIN)
                 }
             )
         }
@@ -97,7 +109,9 @@ class ChatsScreenViewModel : VModel {
                 val selectedStillExists = chats.any { it.uuid == selectedUUID }
 
                 if ((selectedUUID == null) || !selectedStillExists) {
-                    selectChat(chats.maxByOrNull { it.updatedTimestamp }?.uuid)
+                    val autoSelectedUUID = chats.maxByOrNull { it.updatedTimestamp }?.uuid
+                        ?: chats.firstOrNull { it.uuid == Dawson.PRIMARY_CHAT_UUID }?.uuid
+                    selectChat(autoSelectedUUID)
                 }
             }
         }
@@ -117,9 +131,10 @@ class ChatsScreenViewModel : VModel {
         }
     }
 
-    private fun buildChatCellViewModels(chats: List<Chat>, searchText: String, selectedUUID: String?): List<ChatCellViewModel> {
+    private fun buildChatCellViewModels(chats: List<Chat>,  searchText: String, selectedUUID: String?): List<ChatCellViewModel> {
         val query = searchText.trim()
         return chats
+            .filter { it.uuid != Dawson.PRIMARY_CHAT_UUID }
             .filter { chat ->
                 query.isBlank() ||
                     chat.title.contains(query, ignoreCase = true) ||

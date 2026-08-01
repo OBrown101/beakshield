@@ -74,6 +74,7 @@ fun ChatsScreen(
                             groupedMessages = groupedMessages,
                             pendingInputRequests = pendingRequests,
                             userUUIDSelected = userUUID,
+                            inputEnabled = ((agent.parentAgentUUID == null) || (agent.parentAgentUUID == userUUID)),
                             onSendMessage = { chatsScreenViewModel.sendTextPrompt(it) },
                             onRetry = { chatsScreenViewModel.retryPrompt(it) },
                             onRespondToRequest = { response ->

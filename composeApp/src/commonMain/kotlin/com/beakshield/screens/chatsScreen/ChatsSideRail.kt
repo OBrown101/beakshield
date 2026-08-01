@@ -40,6 +40,7 @@ import com.beakshield.textSecondaryColor
 @Composable
 fun ChatsSideRail(
     modifier: Modifier = Modifier,
+    primaryChatCellViewModel: ChatCellViewModel? = null,
     chatCellViewModels: List<ChatCellViewModel> = ChatCellViewModel.MockMsgGroupCVM.mockMsgGroupCVMs,
     onSearchChanged: (String) -> Unit = {},
     onNewChat: () -> Unit = {},
@@ -86,6 +87,33 @@ fun ChatsSideRail(
         HorizontalDivider(color = borderColor)
         Spacer(Modifier.height(24.dp))
 
+        BasicOutlinedSearchBar(
+            modifier = Modifier
+                .height(65.dp)
+                .padding(bottom = padBetween.dp),
+            placeholderText = "Search chats...",
+            onValueChange = onSearchChanged
+        )
+        primaryChatCellViewModel?.let { primaryChat ->
+            Text(
+                modifier = Modifier.padding(bottom = padBetween.dp),
+                text = "Your Orchestrator",
+                color = dawsonGold,
+                fontSize = 15.sp,
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.SemiBold
+            )
+            ChatTableCell(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(90.dp)
+                    .padding(bottom = padBetween.dp)
+                    .clickable {
+                        primaryChat.onSelect()
+                    },
+                cellViewModel = primaryChat
+            )
+        }
         Text(
             modifier = Modifier.padding(bottom = padBetween.dp),
             text = "Your Chats",
@@ -93,13 +121,6 @@ fun ChatsSideRail(
             fontSize = 15.sp,
             fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.SemiBold
-        )
-        BasicOutlinedSearchBar(
-            modifier = Modifier
-                .height(65.dp)
-                .padding(bottom = padBetween.dp),
-            placeholderText = "Search chats...",
-            onValueChange = onSearchChanged
         )
         ChatsTableView(
             modifier = Modifier

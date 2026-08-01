@@ -67,6 +67,7 @@ fun MainHeader(
     modifier: Modifier = Modifier,
     title: String = "Welcome to Beakshield",
     statusText: String = "Your Gateway to Effortless AI Agent Management with DAWSON",
+    onDawsonChat: (String?) -> Unit,
     onStartChat: () -> Unit
 ) {
     val btnTextStyle = TextStyle(
@@ -137,7 +138,8 @@ fun MainHeader(
                 modifier = Modifier
                     .padding(horizontal = 35.dp)
                     .padding(top = padBetween.dp, bottom = padBetween.dp),
-                placeholderText = "Ask Dawson anything..."
+                placeholderText = "Ask Dawson anything...",
+                onSend = onDawsonChat
             )
             Row(
                 modifier = Modifier
@@ -165,7 +167,10 @@ fun MainHeader(
                     imageHeight = imageHeight,
                     color = Color.White,
                     borderColor = backgroundColor,
-                    bg = cardColor
+                    bg = cardColor,
+                    onClick = {
+                        onDawsonChat(null)
+                    }
                 )
                 BasicRoundedIconBtn(
                     modifier = Modifier.width(btnWidth.dp),

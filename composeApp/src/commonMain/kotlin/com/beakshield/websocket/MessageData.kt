@@ -15,6 +15,7 @@ data class MessageData(
     val sourceType: SourceType,
     val sourceUUID: String,
     val destinationUUID: String,
+    val originActor: String? = null,
     val dataType: DataType,
     val payload: JsonElement
 ) {
