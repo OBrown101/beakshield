@@ -17,6 +17,7 @@ data class Chat(
     val agentUUID: String,
     var title: String = "",
     var subtitle: String = "",
+    val createdTimestamp: Long = Clock.System.now().toEpochMilliseconds(),
     var updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
 ) {
 

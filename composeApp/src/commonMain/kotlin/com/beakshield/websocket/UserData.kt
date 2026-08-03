@@ -48,6 +48,7 @@ data class UserData(
         return try {
             Json.decodeFromJsonElement<T>(payload)
         } catch (e: Exception) {
+            println("UserData payloadAs error: $e")
             null
         }
     }

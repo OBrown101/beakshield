@@ -32,6 +32,7 @@ data class ConfigData(
         return try {
             Json.decodeFromJsonElement<T>(payload)
         } catch (e: Exception) {
+            println("ConfigData payloadAs error: $e")
             null
         }
     }

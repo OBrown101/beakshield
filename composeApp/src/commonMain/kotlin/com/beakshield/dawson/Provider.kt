@@ -48,6 +48,13 @@ data class Provider(
                 ANTHROPIC -> false
             }
 
+        val supportsContextWindow: Boolean
+            get() = when (this) {
+                OLLAMA -> true
+                OPENAI -> false
+                ANTHROPIC -> false
+            }
+
         companion object {
             fun fromString(label: String): ProviderType? {
                 return when (label) {

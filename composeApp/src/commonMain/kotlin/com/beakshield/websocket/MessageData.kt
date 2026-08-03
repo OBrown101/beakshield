@@ -35,6 +35,7 @@ data class MessageData(
         return try {
             Json.decodeFromJsonElement<T>(payload)
         } catch (e: Exception) {
+            println("MessageData payloadAs error: $e")
             null
         }
     }

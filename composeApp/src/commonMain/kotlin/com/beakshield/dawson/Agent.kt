@@ -23,6 +23,7 @@ data class Agent(
     val uuid: String,
     val userUUID: String,
     val parentAgentUUID: String? = null,
+    val name: String,
     val type: AgentType = AgentType.SQUIREBOT,
     var mode: Mode = Mode.EGG,
     var model: LLMModel,
@@ -31,6 +32,7 @@ data class Agent(
     var contextWindow: Int,
     var useThinking: Boolean = true,
     var directories: List<String> = emptyList(),
+    val createdTimestamp: Long = Clock.System.now().toEpochMilliseconds(),
     var updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
 ) {
     @Transient private val scope = CoroutineScope(Dispatchers.Default)
@@ -144,6 +146,7 @@ data class Agent(
             Agent(
                 uuid = "2390392039",
                 userUUID = "a2342f2",
+                name = "Jeff",
                 model = LLMModel.MockLLMModel.mockLLMModels[0],
                 thoughtWindow = 240,
                 contextWindow = 28000

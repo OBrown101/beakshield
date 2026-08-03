@@ -543,12 +543,14 @@ class Dawson {
                     this[index] = current.copy(
                         state = agent.state,
                         parentAgentUUID = agent.parentAgentUUID,
+                        name = agent.name,
                         mode = agent.mode,
                         model = agent.model,
                         directories = agent.directories,
                         thoughtWindow = agent.thoughtWindow,
                         contextWindow = agent.contextWindow,
                         useThinking = agent.useThinking,
+                        createdTimestamp = agent.createdTimestamp,
                         updatedTimestamp = Clock.System.now().toEpochMilliseconds()
                     )
                 }

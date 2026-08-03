@@ -5,8 +5,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.serializer
-import kotlin.reflect.KClass
 
 @Serializable
 data class ChatData(
@@ -28,6 +26,7 @@ data class ChatData(
         return try {
             Json.decodeFromJsonElement<T>(payload)
         } catch (e: Exception) {
+            println("ChatData payloadAs error: $e")
             null
         }
     }

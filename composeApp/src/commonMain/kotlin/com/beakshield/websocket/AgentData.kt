@@ -32,6 +32,7 @@ data class AgentData(
         return try {
             Json.decodeFromJsonElement<T>(payload)
         } catch (e: Exception) {
+            println("AgentData payloadAs error: $e")
             null
         }
     }

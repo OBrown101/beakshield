@@ -41,6 +41,7 @@ data class WSPacket(
         return try {
             Json.decodeFromJsonElement<T>(payload)
         } catch (e: Exception) {
+            println("WSPacket payloadAs error: $e")
             null
         }
     }

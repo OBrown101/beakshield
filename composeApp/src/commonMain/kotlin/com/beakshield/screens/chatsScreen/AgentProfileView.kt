@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -35,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -47,6 +49,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Devices.TABLET
@@ -95,6 +98,7 @@ fun ProfileView(
         else -> Color.Transparent
     }
     val padBetween = 10
+    val profileImageSize = 90
 
     LaunchedEffect(title) {
         if ((titleProvided == null) || (titleProvided == "---") || (titleProvided == title)) {
@@ -110,18 +114,36 @@ fun ProfileView(
             .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(90.dp)
-                .clip(CircleShape)
-                .border(2.dp, dawsonGold, CircleShape),
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            agent?.let {
-                Image(
-                    modifier = Modifier.align(Alignment.Center),
-                    painter = painterResource(it.type.image),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit
+            Box(
+                modifier = Modifier
+                    .size(profileImageSize.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, dawsonGold, CircleShape),
+            ) {
+                agent?.let {
+                    Image(
+                        modifier = Modifier.align(Alignment.Center),
+                        painter = painterResource(it.type.image),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+            agent?.name?.ifBlank { null }?.let { name ->
+                Text(
+                    modifier = Modifier
+                        .widthIn(max = profileImageSize.dp)
+                        .padding(vertical = 2.dp),
+                    text = name,
+                    color = dawsonGold,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -221,7 +243,8 @@ fun ProfileView(
                     },
                     title = "Current Status",
                     subtitle = agent?.state?.message ?: "Agent being spawned",
-                    enabled = false
+                    enabled = true,
+                    enableClick = false
                 )
                 ModeDropdown(
                     modifier = Modifier,
@@ -245,6 +268,7 @@ fun ProfileView(
                     title = "Thought Window",
                     subtitle = agent?.thoughtWindow?.formatWithSuffix()?.let { "$it msgs" } ?: "---",
                     enabled = (agent != null),
+                    enableClick = false,    // TODO
                     onClick = onThoughtClick
                 )
                 StatusCard(
@@ -257,8 +281,13 @@ fun ProfileView(
                         )
                     },
                     title = "Context Window",
-                    subtitle = agent?.contextWindow?.formatWithSuffix()?.let { "$it tokens" } ?: "---",
-                    enabled = (agent != null),
+                    subtitle = if (agent?.model?.provider?.supportsContextWindow ?: false) {
+                        agent.contextWindow.formatWithSuffix().let { "$it tokens" }
+                    } else {
+                        "---"
+                    },
+                    enabled = (agent != null) && (agent.model.provider.supportsContextWindow),
+                    enableClick = false,    // TODO
                     onClick = onContextClick
                 )
             }
@@ -272,6 +301,7 @@ private fun StatusCard(
     title: String,
     subtitle: String,
     enabled: Boolean = true,
+    enableClick: Boolean = true,
     onClick: () -> Unit = {}
 ) {
     val shape = RoundedCornerShape(14.dp)
@@ -281,8 +311,9 @@ private fun StatusCard(
             .clip(shape)
             .background(cardColor.copy(alpha = 0.9f))
             .border(1.dp, Color.White.copy(alpha = 0.08f), shape)
+            .alpha(if (enabled) 1f else 0.6f)
             .then(
-                if (enabled) {
+                if (enableClick) {
                     Modifier.clickable(onClick = onClick)
                 } else {
                     Modifier
@@ -346,7 +377,7 @@ fun ModeDropdown(
                     },
                     title = "Agent Capability",
                     subtitle = agent?.mode?.label ?: "---",
-                    enabled = false
+                    enableClick = false
                 )
             }
         )
@@ -401,7 +432,7 @@ fun ModelDropdown(
                     },
                     title = "Model",
                     subtitle = agent?.model?.name ?: "---",
-                    enabled = false
+                    enableClick = false
                 )
             }
         )
