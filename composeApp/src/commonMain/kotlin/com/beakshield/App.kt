@@ -17,7 +17,13 @@ fun App() {
         BaseScreen(
             baseScreenViewModel = BeakShieldApp.baseScreenViewModel,
             mainScreenViewModel = BeakShieldApp.mainScreenViewModel,
-            chatsScreenViewModel = BeakShieldApp.chatsScreenViewModel
+            chatsScreenViewModel = BeakShieldApp.chatsScreenViewModel,
+            agentsScreenViewModel = BeakShieldApp.agentsScreenViewModel,
+            knowledgeScreenViewModel = BeakShieldApp.knowledgeScreenViewModel,
+            decreesScreenViewModel = BeakShieldApp.decreesScreenViewModel,
+            skillsScreenViewModel = BeakShieldApp.skillsScreenViewModel,
+            profileScreenViewModel = BeakShieldApp.profileScreenViewModel,
+            systemScreenViewModel = BeakShieldApp.systemScreenViewModel
         )
     }
 }

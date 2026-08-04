@@ -53,12 +53,23 @@ import com.beakshield.BeakShieldApp.skillsScreenViewModel
 import com.beakshield.BeakShieldApp.systemScreenViewModel
 import com.beakshield.dawsonRed
 import com.beakshield.primaryColor
+import com.beakshield.screens.agentsScreen.AgentsScreen
 import com.beakshield.screens.chatsScreen.ChatsScreen
+import com.beakshield.screens.decreesScreen.DecreesScreen
+import com.beakshield.screens.knowledgeScreen.KnowledgeScreen
 import com.beakshield.screens.mainScreen.MainScreen
+import com.beakshield.screens.profileScreen.ProfileScreen
+import com.beakshield.screens.skillsScreen.SkillsScreen
 import com.beakshield.screens.systemScreen.SystemScreen
+import com.beakshield.viewModels.AgentsScreenViewModel
 import com.beakshield.viewModels.ChatsScreenViewModel
+import com.beakshield.viewModels.DecreesScreenViewModel
+import com.beakshield.viewModels.KnowledgeScreenViewModel
 import com.beakshield.viewModels.MainScreenViewModel
+import com.beakshield.viewModels.ProfileScreenViewModel
 import com.beakshield.viewModels.RailContent
+import com.beakshield.viewModels.SkillsScreenViewModel
+import com.beakshield.viewModels.SystemScreenViewModel
 import kotlinx.coroutines.flow.StateFlow
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -117,7 +128,13 @@ fun AppNavHost(
     startDestination: Destination,
     navToScreen: (Destination) -> Unit,
     mainScreenViewModel: MainScreenViewModel,
-    chatsScreenViewModel: ChatsScreenViewModel
+    chatsScreenViewModel: ChatsScreenViewModel,
+    agentsScreenViewModel: AgentsScreenViewModel,
+    knowledgeScreenViewModel: KnowledgeScreenViewModel,
+    decreesScreenViewModel: DecreesScreenViewModel,
+    skillsScreenViewModel: SkillsScreenViewModel,
+    profileScreenViewModel: ProfileScreenViewModel,
+    systemScreenViewModel: SystemScreenViewModel
 ) {
     NavHost(
         navController = navController,
@@ -136,11 +153,31 @@ fun AppNavHost(
                         chatsScreenViewModel = chatsScreenViewModel,
                         navToScreen = navToScreen
                     )
-                    Destination.AGENTS -> {}
-                    Destination.KNOWLEDGE -> {}
-                    Destination.DECREES -> {}
-                    Destination.SKILLS -> {}
-                    Destination.PROFILE -> {}
+                    Destination.AGENTS -> AgentsScreen(
+                        modifier = modifier,
+                        agentsScreenViewModel = agentsScreenViewModel,
+                        navToScreen = navToScreen
+                    )
+                    Destination.KNOWLEDGE -> KnowledgeScreen(
+                        modifier = modifier,
+                        knowledgeScreenViewModel = knowledgeScreenViewModel,
+                        navToScreen = navToScreen
+                    )
+                    Destination.DECREES -> DecreesScreen(
+                        modifier = modifier,
+                        decreesScreenViewModel = decreesScreenViewModel,
+                        navToScreen = navToScreen
+                    )
+                    Destination.SKILLS -> SkillsScreen(
+                        modifier = modifier,
+                        skillsScreenViewModel = skillsScreenViewModel,
+                        navToScreen = navToScreen
+                    )
+                    Destination.PROFILE -> ProfileScreen(
+                        modifier = modifier,
+                        profileScreenViewModel = profileScreenViewModel,
+                        navToScreen = navToScreen
+                    )
                     Destination.SYSTEM -> SystemScreen(
                         modifier = modifier,
                         systemScreenViewModel = systemScreenViewModel,

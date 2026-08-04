@@ -53,11 +53,15 @@ class ChatsScreenViewModel : VModel {
         }.stateIn(scope, SharingStarted.Eagerly, null)
 
     val currentTitle: StateFlow<String?> = combine(_chatUUIDSelected, dawson.activeChats) { chatUUID, chats ->
-        chats.firstOrNull { it.uuid == chatUUID }?.title
+        chats.firstOrNull { it.uuid == chatUUID }
+    }.flatMapLatest { chat ->
+        chat?.info?.map { it.first } ?: flowOf(null)
     }.stateIn(scope, SharingStarted.Eagerly, null)
 
     val currentSubtitle: StateFlow<String?> = combine(_chatUUIDSelected, dawson.activeChats) { chatUUID, chats ->
-        chats.firstOrNull { it.uuid == chatUUID }?.subtitle
+        chats.firstOrNull { it.uuid == chatUUID }
+    }.flatMapLatest { chat ->
+        chat?.info?.map { it.second } ?: flowOf(null)
     }.stateIn(scope, SharingStarted.Eagerly, null)
 
     val groupedMessages: StateFlow<Map<String, List<Message>>> =

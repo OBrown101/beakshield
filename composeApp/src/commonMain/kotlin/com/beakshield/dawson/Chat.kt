@@ -24,6 +24,16 @@ data class Chat(
     @Transient private val _messages = MutableStateFlow<List<Message>>(emptyList())
     @Transient val messages = _messages.asStateFlow()
 
+    @Transient private val _info = MutableStateFlow(Pair(title, subtitle))
+    @Transient val info = _info.asStateFlow()
+
+    fun setInfo(title: String, subtitle: String) {
+        this.title = title
+        this.subtitle = subtitle
+        updatedTimestamp = Clock.System.now().toEpochMilliseconds()
+        _info.value = Pair(title, subtitle)
+    }
+
     fun setDelivered(msgUUID: String) {
         _messages.update { messages ->
             messages.map { msg ->

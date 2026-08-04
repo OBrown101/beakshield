@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,44 +54,46 @@ fun ChatsScreen(
         contentAlignment = Alignment.TopCenter
     ) {
         if (chatUUIDSelected != null) {
-            Column() {
-                ProfileView(
-                    modifier = Modifier,
-                    agent = currentAgent,
-                    title = currentTitle,
-                    subtitle = currentSubtitle,
-                    onTitleChange = { chatsScreenViewModel.setTitle(it) },
-                    onModeClick = { chatsScreenViewModel.setModeRequest(it) },
-                    onModelClick = { chatsScreenViewModel.setModel(it) },
-                    onThoughtClick = {},
-                    onContextClick = {}
-                )
-                userUUIDSelected?.let { userUUID ->
-                    currentAgent?.let { agent ->
-                        ChatView(
-                            modifier = Modifier,
-                            userInputFocusReq = userInputFocusReq,
-                            agent = agent,
-                            groupedMessages = groupedMessages,
-                            pendingInputRequests = pendingRequests,
-                            userUUIDSelected = userUUID,
-                            inputEnabled = ((agent.parentAgentUUID == null) || (agent.parentAgentUUID == userUUID)),
-                            onSendMessage = { chatsScreenViewModel.sendTextPrompt(it) },
-                            onRetry = { chatsScreenViewModel.retryPrompt(it) },
-                            onRespondToRequest = { response ->
-                                dawson.respondToRequest(response)
-                            },
-                            onDeleteDirectory = {
-                                chatsScreenViewModel.removeDirectory(it)
-                            },
-                            onAttachClick = {
-                                chatsScreenViewModel.addDirectories(it)
-                            },
-                            onMicClick = {},
-                            onCancel = {
-                                dawson.cancelAgentRun(agent.uuid)
-                            }
-                        )
+            key(chatUUIDSelected) {
+                Column() {
+                    ProfileView(
+                        modifier = Modifier,
+                        agent = currentAgent,
+                        title = currentTitle,
+                        subtitle = currentSubtitle,
+                        onTitleChange = { chatsScreenViewModel.setTitle(it) },
+                        onModeClick = { chatsScreenViewModel.setModeRequest(it) },
+                        onModelClick = { chatsScreenViewModel.setModel(it) },
+                        onThoughtClick = {},
+                        onContextClick = {}
+                    )
+                    userUUIDSelected?.let { userUUID ->
+                        currentAgent?.let { agent ->
+                            ChatView(
+                                modifier = Modifier,
+                                userInputFocusReq = userInputFocusReq,
+                                agent = agent,
+                                groupedMessages = groupedMessages,
+                                pendingInputRequests = pendingRequests,
+                                userUUIDSelected = userUUID,
+                                inputEnabled = ((agent.parentAgentUUID == null) || (agent.parentAgentUUID == userUUID)),
+                                onSendMessage = { chatsScreenViewModel.sendTextPrompt(it) },
+                                onRetry = { chatsScreenViewModel.retryPrompt(it) },
+                                onRespondToRequest = { response ->
+                                    dawson.respondToRequest(response)
+                                },
+                                onDeleteDirectory = {
+                                    chatsScreenViewModel.removeDirectory(it)
+                                },
+                                onAttachClick = {
+                                    chatsScreenViewModel.addDirectories(it)
+                                },
+                                onMicClick = {},
+                                onCancel = {
+                                    dawson.cancelAgentRun(agent.uuid)
+                                }
+                            )
+                        }
                     }
                 }
             }

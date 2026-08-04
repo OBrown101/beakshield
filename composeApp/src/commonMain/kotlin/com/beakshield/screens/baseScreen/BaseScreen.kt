@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -56,24 +56,36 @@ import beakshield.composeapp.generated.resources.main_bg
 import beakshield.composeapp.generated.resources.nav_insignia
 import com.beakshield.BuildInfo
 import com.beakshield.backgroundColor
-import com.beakshield.dawsonGold
 import com.beakshield.notifications.AlertNotification
 import com.beakshield.notifications.AlertView
+import com.beakshield.primaryColor
 import com.beakshield.screens.AppNavHost
 import com.beakshield.screens.Destination
 import com.beakshield.screens.NavigationRail
 import com.beakshield.surfaceColor
 import com.beakshield.textColor
+import com.beakshield.viewModels.AgentsScreenViewModel
 import com.beakshield.viewModels.BaseScreenViewModel
 import com.beakshield.viewModels.ChatsScreenViewModel
+import com.beakshield.viewModels.DecreesScreenViewModel
+import com.beakshield.viewModels.KnowledgeScreenViewModel
 import com.beakshield.viewModels.MainScreenViewModel
+import com.beakshield.viewModels.ProfileScreenViewModel
+import com.beakshield.viewModels.SkillsScreenViewModel
+import com.beakshield.viewModels.SystemScreenViewModel
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun BaseScreen(
     baseScreenViewModel: BaseScreenViewModel,
     mainScreenViewModel: MainScreenViewModel,
-    chatsScreenViewModel: ChatsScreenViewModel
+    chatsScreenViewModel: ChatsScreenViewModel,
+    agentsScreenViewModel: AgentsScreenViewModel,
+    knowledgeScreenViewModel: KnowledgeScreenViewModel,
+    decreesScreenViewModel: DecreesScreenViewModel,
+    skillsScreenViewModel: SkillsScreenViewModel,
+    profileScreenViewModel: ProfileScreenViewModel,
+    systemScreenViewModel: SystemScreenViewModel
 ) {
     val currentAlert = baseScreenViewModel.currentAlert.collectAsState()
     val navController = rememberNavController()
@@ -106,7 +118,13 @@ fun BaseScreen(
             startDestination = Destination.MAIN,
             navToScreen = { navToScreen(it) },
             mainScreenViewModel = mainScreenViewModel,
-            chatsScreenViewModel = chatsScreenViewModel
+            chatsScreenViewModel = chatsScreenViewModel,
+            agentsScreenViewModel = agentsScreenViewModel,
+            knowledgeScreenViewModel = knowledgeScreenViewModel,
+            decreesScreenViewModel = decreesScreenViewModel,
+            skillsScreenViewModel = skillsScreenViewModel,
+            profileScreenViewModel = profileScreenViewModel,
+            systemScreenViewModel = systemScreenViewModel
         )
     }
 }
@@ -284,6 +302,7 @@ fun HeaderScreen(
     modifier: Modifier = Modifier,
     title: String = "System",
     subtitle: String = "Manage your kingdom's infrastructure, connections, and system settings.",
+    destination: Destination,
     content: @Composable () -> Unit = {}
 ) {
     Box(
@@ -300,16 +319,18 @@ fun HeaderScreen(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    modifier = Modifier.size(30.dp),
-                    imageVector = Icons.Outlined.Settings,
-                    contentDescription = null,
-                    tint = dawsonGold
+                Image(
+                    modifier = Modifier.size(25.dp),
+                    painter = painterResource(destination.icon),
+                    contentDescription = "",
+                    alignment = Alignment.Center,
+                    colorFilter = ColorFilter.tint(primaryColor),
+                    contentScale = ContentScale.Fit
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = title,
-                    fontSize = 30.sp,
+                    fontSize = 27.sp,
                     color = textColor,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Normal

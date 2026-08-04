@@ -630,9 +630,7 @@ class Dawson {
                 val current = oldChats[index]
                 if (current.updatedTimestamp >= chat.updatedTimestamp) return@update oldChats
 
-                current.title = chat.title
-                current.subtitle = chat.subtitle
-                current.updatedTimestamp = Clock.System.now().toEpochMilliseconds()
+                current.setInfo(chat.title, chat.subtitle)
 
                 oldChats.toMutableList().apply {
                     this[index] = current

@@ -84,6 +84,8 @@ fun ProfileView(
     onContextClick: () -> Unit = {}
 ) {
     var titleProvided by remember { mutableStateOf(title) }
+    var lastSyncedTitle by remember { mutableStateOf(title) }
+
     val editMode = ((titleProvided != null) && (titleProvided != title))
     val titleIconModifier = if (editMode) {
         Modifier.padding(10.dp)
@@ -101,9 +103,10 @@ fun ProfileView(
     val profileImageSize = 90
 
     LaunchedEffect(title) {
-        if ((titleProvided == null) || (titleProvided == "---") || (titleProvided == title)) {
+        if ((titleProvided == null) || (titleProvided == "---") || (titleProvided == lastSyncedTitle)) {
             titleProvided = title
         }
+        lastSyncedTitle = title
     }
 
     Row(

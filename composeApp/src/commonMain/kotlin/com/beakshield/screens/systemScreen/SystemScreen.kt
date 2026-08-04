@@ -69,7 +69,8 @@ fun SystemScreen(
             .fillMaxSize()
             .background(Color.Transparent),
         title = "System",
-        subtitle = "Manage your kingdom's infrastructure, connections, and system settings."
+        subtitle = "Manage your kingdom's infrastructure, connections, and system settings.",
+        destination = Destination.SYSTEM
     ) {
         Box(
             contentAlignment = Alignment.Center
