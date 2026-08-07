@@ -15,11 +15,14 @@ import com.beakshield.websocket.WSPacket.PacketType.AGENT_DATA
 import com.beakshield.websocket.WSPacket.PacketType.CHAT_DATA
 import com.beakshield.websocket.WSPacket.PacketType.CONFIG_DATA
 import com.beakshield.websocket.WSPacket.PacketType.ERROR
+import com.beakshield.websocket.WSPacket.PacketType.MEMORY_DATA
 import com.beakshield.websocket.WSPacket.PacketType.PONG
 import com.beakshield.websocket.WSPacket.PacketType.SYNC_STATE
 import com.beakshield.websocket.WSPacket.PacketType.USER_DATA
 import com.beakshield.websocket.WSPacket.PacketType.USER_INPUT_REQUEST_RESPONSE
 import com.beakshield.websocket.WebSocketClient
+import com.beakshield.websocket.memory.MemoryData
+import com.beakshield.websocket.memory.MemoryQuery
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -63,6 +66,9 @@ class Dawson {
     private val _pendingInputRequests = MutableStateFlow<List<UserInputRequest>>(emptyList())
     val pendingInputRequests = _pendingInputRequests.asStateFlow()
 
+    private val _memoryResponses = MutableStateFlow<Map<String, MemoryData>>(emptyMap())
+    val memoryResponses = _memoryResponses.asStateFlow()
+
     init {
         _activeUsers.update { it + User.defaultUser }          // USED FOR TESTING (NOT PRODUCTION)
         _currentUserUUID.value = User.defaultUser.uuid      // USED FOR TESTING (NOT PRODUCTION)
@@ -97,6 +103,11 @@ class Dawson {
                     CONFIG_DATA -> {
                         packet.payloadAs<ConfigData>()?.let {
                             handleConfigData(it)
+                        }
+                    }
+                    MEMORY_DATA -> {
+                        packet.payloadAs<MemoryData>()?.let {
+                            handleMemoryData(it)
                         }
                     }
                     ERROR -> {}
@@ -278,6 +289,17 @@ class Dawson {
         socket.send(configData, ConfigData::class, CONFIG_DATA)
     }
 
+    fun requestMemory(
+        dataUUID: String,
+        dataType: MemoryData.DataType,
+        query: MemoryQuery = MemoryQuery()
+    ) {
+        val userUUID = _currentUserUUID.value ?: return
+        val payload = WebSocketClient.json.encodeToJsonElement(serializer<MemoryQuery>(), query)
+        val memoryData = MemoryData(userUUID, dataUUID, dataType, payload)
+        socket.send(memoryData, MemoryData::class, MEMORY_DATA)
+    }
+
     private fun handleSyncState(data: SyncState) {
         println("handleSyncState")
 
@@ -326,6 +348,13 @@ class Dawson {
             } ?: run {
                 fetchChat(uuid)
             }
+        }
+    }
+
+    private fun handleMemoryData(data: MemoryData) {
+        println("handleMemoryData: ${data.dataType}")
+        _memoryResponses.update {
+            it + (data.dataUUID to data)
         }
     }
 

@@ -23,6 +23,7 @@ data class WSPacket(
         AGENT_DATA,
         CHAT_DATA,
         CONFIG_DATA,
+        MEMORY_DATA,
         USER_INPUT_REQUEST_RESPONSE,
         ERROR;
 

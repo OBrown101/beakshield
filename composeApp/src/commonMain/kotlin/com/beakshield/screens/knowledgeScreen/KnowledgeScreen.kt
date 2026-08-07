@@ -3,12 +3,16 @@ package com.beakshield.screens.knowledgeScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -31,6 +35,9 @@ fun KnowledgeScreen(
 ) {
     val userInputFocusReq = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val knowledgeCellViewModels by knowledgeScreenViewModel.knowledgeCellViewModels.collectAsState()
+    val domainCellViewModels by knowledgeScreenViewModel.domainCellViewModels.collectAsState()
+    val knowledgeStatistics by knowledgeScreenViewModel.knowledgeStatistics.collectAsState()
 
     val padBetween = 12
 
@@ -47,23 +54,38 @@ fun KnowledgeScreen(
         subtitle = "Explore the knowledge your kingdom has acquired.",
         destination = Destination.KNOWLEDGE
     ) {
-        Row(
-            modifier = Modifier.height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(padBetween.dp)
-        ) {
-            KnowledgeBannerView(
-                modifier = Modifier.weight(1f),
-//                popularSearches = ,
-//                onSearch = ,
-//                onPopularSearchClick =
+        Column() {
+            Row(
+                modifier = Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(padBetween.dp)
+            ) {
+                KnowledgeBannerView(
+                    modifier = Modifier.weight(1f),
+                    popularSearches = listOf("USBManager", "Kotlin Coroutines", "Compose Navigation", "Email Tone"), // TODO: Connect to saved string list
+                    onSearch = {
+                        knowledgeScreenViewModel.requestSearch(it)
+                    },
+                    onPopularSearchClick = {
+                        knowledgeScreenViewModel.requestSearch(it)
+                    }
+                )
+                StatisticsView(
+                    modifier = Modifier.width(250.dp),
+                    totalKnowledge = knowledgeStatistics.totalKnowledge ?: 0,
+                    domains = knowledgeStatistics.domains ?: 0,
+                    lastUpdated = knowledgeStatistics.lastUpdated
+                )
+            }
+            RecentKnowledgeView(
+                modifier = Modifier
+                    .padding(top = padBetween.dp)
+                    .weight(1f),
+                knowledgeCellViewModels = knowledgeCellViewModels
             )
-            StatisticsView(
-                modifier = Modifier.width(250.dp)
-//                totalKnowledge = ,
-//                domains = ,
-//                lastUpdated = ,
-//                storageUsed = ,
-//                onViewFullStats =
+            KnowledgeInsightsView(
+                modifier = Modifier.padding(top = padBetween.dp),
+                domainCellViewModels = domainCellViewModels
+//                onViewAllDomains =       // TODO: Navigate to wings browse view
             )
         }
     }
