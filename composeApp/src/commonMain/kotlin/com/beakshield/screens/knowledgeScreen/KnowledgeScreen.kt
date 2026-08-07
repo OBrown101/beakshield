@@ -24,11 +24,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.beakshield.screens.Destination
 import com.beakshield.screens.baseScreen.HeaderScreen
+import com.beakshield.screens.knowledgeScreen.domainViews.DomainsOverviewView
+import com.beakshield.screens.knowledgeScreen.domainViews.DomainsView
+import com.beakshield.screens.knowledgeScreen.searchViews.SearchBannerView
+import com.beakshield.screens.knowledgeScreen.searchViews.SearchResultsView
 import com.beakshield.viewModels.KnowledgeScreenViewModel
 
 @Preview(device = TABLET)
 @Composable
-fun KnowledgeScreen(
+fun ScreenBanner(
     modifier: Modifier = Modifier,
     knowledgeScreenViewModel: KnowledgeScreenViewModel = KnowledgeScreenViewModel(),
     navToScreen: (Destination) -> Unit = {}
@@ -36,8 +40,16 @@ fun KnowledgeScreen(
     val userInputFocusReq = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val knowledgeCellViewModels by knowledgeScreenViewModel.knowledgeCellViewModels.collectAsState()
-    val domainCellViewModels by knowledgeScreenViewModel.domainCellViewModels.collectAsState()
     val knowledgeStatistics by knowledgeScreenViewModel.knowledgeStatistics.collectAsState()
+
+    val searchResults by knowledgeScreenViewModel.searchResults.collectAsState()
+    val canLoadMoreResults by knowledgeScreenViewModel.canLoadMoreResults.collectAsState()
+    val isSearching by knowledgeScreenViewModel.isSearching.collectAsState()
+    val searchResultCellViewModels by knowledgeScreenViewModel.searchResultCellViewModels.collectAsState()
+
+    val showAllDomains by knowledgeScreenViewModel.showAllDomains.collectAsState()
+    val allDomainCellViewModels by knowledgeScreenViewModel.allDomainCellViewModels.collectAsState()
+    val domainCellViewModels by knowledgeScreenViewModel.domainCellViewModels.collectAsState()
 
     val padBetween = 12
 
@@ -59,11 +71,16 @@ fun KnowledgeScreen(
                 modifier = Modifier.height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(padBetween.dp)
             ) {
-                KnowledgeBannerView(
+                SearchBannerView(
                     modifier = Modifier.weight(1f),
                     popularSearches = listOf("USBManager", "Kotlin Coroutines", "Compose Navigation", "Email Tone"), // TODO: Connect to saved string list
+                    isSearching = isSearching,
+                    searchActive = (searchResults != null),
                     onSearch = {
                         knowledgeScreenViewModel.requestSearch(it)
+                    },
+                    onClearSearch = {
+                        knowledgeScreenViewModel.clearSearch()
                     },
                     onPopularSearchClick = {
                         knowledgeScreenViewModel.requestSearch(it)
@@ -76,17 +93,39 @@ fun KnowledgeScreen(
                     lastUpdated = knowledgeStatistics.lastUpdated
                 )
             }
-            RecentKnowledgeView(
-                modifier = Modifier
-                    .padding(top = padBetween.dp)
-                    .weight(1f),
-                knowledgeCellViewModels = knowledgeCellViewModels
-            )
-            KnowledgeInsightsView(
-                modifier = Modifier.padding(top = padBetween.dp),
-                domainCellViewModels = domainCellViewModels
-//                onViewAllDomains =       // TODO: Navigate to wings browse view
-            )
+            when {
+                (searchResults != null) -> {
+                    SearchResultsView(
+                        modifier = Modifier.padding(top = padBetween.dp).weight(1f),
+                        query = searchResults?.query ?: "",
+                        searchResultCellViewModels = searchResultCellViewModels,
+                        canLoadMore = canLoadMoreResults,
+                        isLoadingMore = isSearching,
+                        onLoadMore = { knowledgeScreenViewModel.loadMoreSearchResults() },
+                        onClearSearch = { knowledgeScreenViewModel.clearSearch() }
+                    )
+                }
+                showAllDomains -> {
+                    DomainsView(
+                        modifier = Modifier.padding(top = padBetween.dp).weight(1f),
+                        domainCellViewModels = allDomainCellViewModels,
+                        onClose = { knowledgeScreenViewModel.closeAllDomains() }
+                    )
+                }
+                else -> {
+                    RecentKnowledgeView(
+                        modifier = Modifier.padding(top = padBetween.dp).weight(1f),
+                        knowledgeCellViewModels = knowledgeCellViewModels
+                    )
+                }
+            }
+            if (!showAllDomains) {
+                DomainsOverviewView(
+                    modifier = Modifier.padding(top = padBetween.dp),
+                    domainCellViewModels = domainCellViewModels,
+                    onViewAllDomains = { knowledgeScreenViewModel.openAllDomains() }
+                )
+            }
         }
     }
 }

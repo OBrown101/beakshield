@@ -1,4 +1,4 @@
-package com.beakshield.screens.knowledgeScreen
+package com.beakshield.screens.knowledgeScreen.domainViews
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,13 +29,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.composables.BasicBox
 import com.beakshield.dawsonGold
+import com.beakshield.formatCount
 import com.beakshield.tablecells.DomainCellViewModel
 import com.beakshield.textColor
 import com.beakshield.textSecondaryColor
 
 @Preview(device = TABLET)
 @Composable
-fun KnowledgeInsightsView(
+fun DomainsOverviewView(
     modifier: Modifier = Modifier,
     domainCellViewModels: List<DomainCellViewModel> = DomainCellViewModel.MockDomainCVM.mockDomainCVMs,
     onViewAllDomains: () -> Unit = {}
@@ -104,7 +105,7 @@ fun KnowledgeInsightsView(
 }
 
 @Composable
-private fun DomainCard(
+fun DomainCard(
     modifier: Modifier = Modifier,
     cellViewModel: DomainCellViewModel
 ) {
@@ -146,7 +147,7 @@ private fun DomainCard(
             )
             Text(
                 modifier = Modifier.padding(top = 8.dp),
-                text = cellViewModel.entryCount.toString(),
+                text = formatCount(cellViewModel.entryCount),
                 color = textColor,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.SemiBold

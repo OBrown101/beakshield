@@ -1,4 +1,4 @@
-package com.beakshield.screens.knowledgeScreen
+package com.beakshield.screens.knowledgeScreen.searchViews
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,7 +20,9 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +47,8 @@ import beakshield.composeapp.generated.resources.knowledge_bg
 import com.beakshield.borderColor
 import com.beakshield.cardColor
 import com.beakshield.composables.BasicBox
+import com.beakshield.dawsonGold
+import com.beakshield.memory.Memory.MAX_SEARCH_QUERY_CHARS
 import com.beakshield.primaryColor
 import com.beakshield.textColor
 import com.beakshield.textSecondaryColor
@@ -52,10 +56,13 @@ import org.jetbrains.compose.resources.painterResource
 
 @Preview
 @Composable
-fun KnowledgeBannerView(
+fun SearchBannerView(
     modifier: Modifier = Modifier,
     popularSearches: List<String> = listOf("USBManager", "Kotlin Coroutines", "Compose Navigation", "Email Tone"),
+    isSearching: Boolean = false,
+    searchActive: Boolean = false,
     onSearch: (String) -> Unit = {},
+    onClearSearch: () -> Unit = {},
     onPopularSearchClick: (String) -> Unit = {}
 ) {
     val padBetween = 12
@@ -103,7 +110,10 @@ fun KnowledgeBannerView(
                 Spacer(Modifier.height(28.dp))
                 KnowledgeSearchBar(
                     modifier = Modifier.fillMaxWidth(),
-                    onSearch = onSearch
+                    isSearching = isSearching,
+                    searchActive = searchActive,
+                    onSearch = onSearch,
+                    onClearSearch = onClearSearch
                 )
                 Spacer(Modifier.height((padBetween * 2).dp))
                 PopularSearchesRow(
@@ -119,7 +129,10 @@ fun KnowledgeBannerView(
 private fun KnowledgeSearchBar(
     modifier: Modifier = Modifier,
     placeholderText: String = "Search knowledge...",
-    onSearch: (String) -> Unit
+    isSearching: Boolean,
+    searchActive: Boolean,
+    onSearch: (String) -> Unit,
+    onClearSearch: () -> Unit
 ) {
     var text by remember { mutableStateOf("") }
 
@@ -140,17 +153,25 @@ private fun KnowledgeSearchBar(
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                modifier = Modifier.size(22.dp),
-                imageVector = Icons.Outlined.Search,
-                contentDescription = null,
-                tint = textColor
-            )
+            if (isSearching) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = dawsonGold,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    modifier = Modifier.size(22.dp),
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = null,
+                    tint = textColor
+                )
+            }
             Spacer(modifier = Modifier.width(12.dp))
             BasicTextField(
                 modifier = Modifier.weight(1f),
                 value = text,
-                onValueChange = { text = it },
+                onValueChange = { text = it.take(MAX_SEARCH_QUERY_CHARS) },
                 singleLine = true,
                 textStyle = TextStyle(
                     color = textColor,
@@ -182,6 +203,21 @@ private fun KnowledgeSearchBar(
                     }
                 }
             )
+            if (text.isNotEmpty() || searchActive) {
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 12.dp)
+                        .size(20.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable {
+                            text = ""
+                            onClearSearch()
+                        },
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = null,
+                    tint = textSecondaryColor
+                )
+            }
         }
     }
 }

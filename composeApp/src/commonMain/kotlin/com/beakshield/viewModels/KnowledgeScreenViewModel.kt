@@ -1,6 +1,8 @@
 package com.beakshield.viewModels
 
 import com.beakshield.BeakShieldApp.dawson
+import com.beakshield.memory.Memory.MAX_SEARCH_QUERY_CHARS
+import com.beakshield.memory.Memory.MAX_SEARCH_RESULTS
 import com.beakshield.tablecells.DomainCellViewModel
 import com.beakshield.tablecells.KnowledgeCellViewModel
 import com.beakshield.websocket.memory.MemoryData
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -33,17 +36,51 @@ class KnowledgeScreenViewModel : VModel {
     private val _railContent = MutableStateFlow<RailContent?>(null)
     override val railContent = _railContent.asStateFlow()
 
+    // REQUEST UUIDs
     private val _overviewRequestUUID = MutableStateFlow<String?>(null)
     private val _wingsRequestUUID = MutableStateFlow<String?>(null)
     private val _searchRequestUUID = MutableStateFlow<String?>(null)
 
-    private val _memoryOverview = MutableStateFlow<MemoryOverview?>(null)
-    private val _memoryWings = MutableStateFlow<MemoryWingList?>(null)
-    private val _searchResults = MutableStateFlow<MemorySearchResults?>(null)
-
     private val _lastKnowledgeViewedAt = MutableStateFlow(0L)   // TODO: Persist between sessions
+    private val _memoryOverview = MutableStateFlow<MemoryOverview?>(null)
     val memoryOverview = _memoryOverview.asStateFlow()
+    private val _memoryWings = MutableStateFlow<MemoryWingList?>(null)
 
+    // DOMAINS
+    private val _showAllDomains = MutableStateFlow(false)
+    val showAllDomains = _showAllDomains.asStateFlow()
+    private val _pendingSearchQuery = MutableStateFlow<String?>(null)
+
+    val allDomainCellViewModels: StateFlow<List<DomainCellViewModel>> =
+        _memoryWings.map { wings ->
+            getDomainCellViewModels(wings ?: return@map emptyList(), limit = null)
+        }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    val domainCellViewModels: StateFlow<List<DomainCellViewModel>> =
+        combine(_memoryWings, _memoryOverview) { wings, _ ->
+            getDomainCellViewModels(wings ?: return@combine emptyList())
+        }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    // SEARCH RELATED
+    private val _searchResults = MutableStateFlow<MemorySearchResults?>(null)
+    val searchResults = _searchResults.asStateFlow()
+    private val _searchLimit = MutableStateFlow(DEFAULT_NUM_BATCH_RESULTS)
+    private var lastSearchQuery: String? = null
+
+    val canLoadMoreResults: StateFlow<Boolean> =
+        combine(_searchResults, _searchLimit) { results, limit ->
+            (results != null) && (results.results.size >= limit) && (limit < MAX_SEARCH_RESULTS)
+        }.stateIn(scope, SharingStarted.Eagerly, false)
+
+    val searchResultCellViewModels: StateFlow<List<KnowledgeCellViewModel>> =
+        _searchResults.map { results ->
+            getSearchResultCellViewModels(results?.results ?: emptyList())
+        }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    val isSearching: StateFlow<Boolean> = _pendingSearchQuery.map { it != null }
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
+    // RECENT KNOWLEDGE AND STATS
     val knowledgeCellViewModels: StateFlow<List<KnowledgeCellViewModel>> =
         combine(_memoryOverview, _lastKnowledgeViewedAt) { overview, lastViewedAt ->
             getKnowledgeCellViewModels(overview?.recents ?: emptyList(), lastViewedAt)
@@ -57,11 +94,6 @@ class KnowledgeScreenViewModel : VModel {
                 lastUpdated = cells.firstOrNull()?.filedAtFormattedRelative ?: "---"
             )
         }.stateIn(scope, SharingStarted.Eagerly, KnowledgeStatistics())
-
-    val domainCellViewModels: StateFlow<List<DomainCellViewModel>> =
-        combine(_memoryWings, _memoryOverview) { wings, _ ->
-            getDomainCellViewModels(wings ?: return@combine emptyList())
-        }.stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     init {
         scope.launch {
@@ -93,9 +125,11 @@ class KnowledgeScreenViewModel : VModel {
                 requestUUID?.let { responses[it] }
             }.collect { response ->
                 if (response?.dataType == MemoryData.DataType.SEARCH) {
-                    response.payloadAs<MemorySearchResults>()?.let { results ->
+                    val results = response.payloadAs<MemorySearchResults>()
+                    if (results != null) {
                         _searchResults.value = results
                     }
+                    _pendingSearchQuery.value = null
                 }
             }
         }
@@ -120,6 +154,19 @@ class KnowledgeScreenViewModel : VModel {
         }
     }
 
+    private fun getDomainCellViewModels(wings: MemoryWingList, limit: Int? = MAX_DOMAIN_CARDS): List<DomainCellViewModel> {
+        val selected = limit?.let { wings.wings.take(it) } ?: wings.wings
+        return selected.mapIndexed { index, wing ->
+            DomainCellViewModel(
+                id = index.toLong(),
+                wing = wing,
+                onSelect = {
+                    // TODO: Navigate to wing browse view (rooms within wing)
+                }
+            )
+        }
+    }
+
     private fun getKnowledgeCellViewModels(drawers: List<MemoryDrawer>, lastViewedAt: Long): List<KnowledgeCellViewModel> {
         return drawers.mapIndexed { index, drawer ->
             KnowledgeCellViewModel(
@@ -139,9 +186,25 @@ class KnowledgeScreenViewModel : VModel {
             .sortedByDescending { it.filedAtMillis ?: 0L }
     }
 
+    private fun getSearchResultCellViewModels(drawers: List<MemoryDrawer>): List<KnowledgeCellViewModel> {
+        // NOTE: Search hits do not carry drawerId
+        return drawers.mapIndexed { index, drawer ->
+            KnowledgeCellViewModel(
+                id = index.toLong(),
+                drawer = drawer,
+                onSelect = {
+                    // TODO: Expand cell inline (full content is already present)
+                },
+                onWingRoomClick = {
+                    // TODO: Navigate to wing/room browse view
+                }
+            )
+        }
+    }
+
     private fun getDomainCellViewModels(wings: MemoryWingList): List<DomainCellViewModel> {
         return wings.wings      // pre-sorted by count desc server-side
-            .take(maxDomainCards)
+            .take(MAX_DOMAIN_CARDS)
             .mapIndexed { index, wing ->
                 DomainCellViewModel(
                     id = index.toLong(),
@@ -174,13 +237,49 @@ class KnowledgeScreenViewModel : VModel {
     }
 
     fun requestSearch(query: String) {
+        val trimmed = query.trim().take(MAX_SEARCH_QUERY_CHARS)
+        if (trimmed.isEmpty()) return
+
+        lastSearchQuery = trimmed
+        _searchLimit.value = DEFAULT_NUM_BATCH_RESULTS  // new query resets the window
+        fireSearch(trimmed, DEFAULT_NUM_BATCH_RESULTS)
+    }
+
+    fun loadMoreSearchResults() {
+        val query = lastSearchQuery ?: return
+        if (_pendingSearchQuery.value != null) return
+
+        val newLimit = minOf((_searchLimit.value + DEFAULT_NUM_BATCH_RESULTS), MAX_SEARCH_RESULTS)
+        _searchLimit.value = newLimit
+        fireSearch(query, newLimit)
+    }
+
+    private fun fireSearch(query: String, limit: Int) {
         val dataUUID = Uuid.random().toString()
         _searchRequestUUID.value = dataUUID
+        _pendingSearchQuery.value = query
         dawson.requestMemory(
             dataUUID = dataUUID,
             dataType = MemoryData.DataType.SEARCH,
-            query = MemoryQuery(query = query)
+            query = MemoryQuery(query = query, limit = limit)
         )
+    }
+
+    fun clearSearch() {
+        _searchResults.value = null
+        _searchLimit.value = DEFAULT_NUM_BATCH_RESULTS
+        lastSearchQuery = null
+        _pendingSearchQuery.value = null
+        _searchRequestUUID.value = null
+    }
+
+    fun openAllDomains() {
+        clearSearch()
+        _showAllDomains.value = true
+    }
+
+    fun closeAllDomains() {
+        _showAllDomains.value = false
     }
 
     fun markKnowledgeViewed() {
@@ -188,6 +287,7 @@ class KnowledgeScreenViewModel : VModel {
     }
 
     companion object {
-        private const val maxDomainCards = 5
+        private const val MAX_DOMAIN_CARDS = 5
+        private const val DEFAULT_NUM_BATCH_RESULTS = 15
     }
 }

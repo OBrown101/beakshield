@@ -56,7 +56,7 @@ import com.beakshield.primaryColor
 import com.beakshield.screens.agentsScreen.AgentsScreen
 import com.beakshield.screens.chatsScreen.ChatsScreen
 import com.beakshield.screens.decreesScreen.DecreesScreen
-import com.beakshield.screens.knowledgeScreen.KnowledgeScreen
+import com.beakshield.screens.knowledgeScreen.ScreenBanner
 import com.beakshield.screens.mainScreen.MainScreen
 import com.beakshield.screens.profileScreen.ProfileScreen
 import com.beakshield.screens.skillsScreen.SkillsScreen
@@ -158,7 +158,7 @@ fun AppNavHost(
                         agentsScreenViewModel = agentsScreenViewModel,
                         navToScreen = navToScreen
                     )
-                    Destination.KNOWLEDGE -> KnowledgeScreen(
+                    Destination.KNOWLEDGE -> ScreenBanner(
                         modifier = modifier,
                         knowledgeScreenViewModel = knowledgeScreenViewModel,
                         navToScreen = navToScreen
