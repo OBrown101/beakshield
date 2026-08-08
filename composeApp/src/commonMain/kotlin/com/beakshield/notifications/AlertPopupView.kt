@@ -60,7 +60,9 @@ fun AlertView(
                 .fillMaxSize()
                 .background(Color.Black.copy(0.35f))
                 .pointerInput(Unit) {
-                    detectTapGestures(onTap = {})
+                    detectTapGestures(onTap = {
+                        onDismiss()
+                    })
                 }
         )
         BasicBox(

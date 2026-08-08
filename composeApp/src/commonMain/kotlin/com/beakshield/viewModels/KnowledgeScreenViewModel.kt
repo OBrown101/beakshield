@@ -6,6 +6,7 @@ import com.beakshield.memory.Memory.MAX_SEARCH_RESULTS
 import com.beakshield.tablecells.DomainCellViewModel
 import com.beakshield.tablecells.KnowledgeCellViewModel
 import com.beakshield.websocket.memory.MemoryData
+import com.beakshield.websocket.memory.MemoryDeleteResult
 import com.beakshield.websocket.memory.MemoryDrawer
 import com.beakshield.websocket.memory.MemoryOverview
 import com.beakshield.websocket.memory.MemoryQuery
@@ -36,10 +37,27 @@ class KnowledgeScreenViewModel : VModel {
     private val _railContent = MutableStateFlow<RailContent?>(null)
     override val railContent = _railContent.asStateFlow()
 
+    // DETAIL DRAWER HANDLING
+    private val _detailDrawer = MutableStateFlow<MemoryDrawer?>(null)
+    val detailDrawer = _detailDrawer.asStateFlow()
+
+    private val _pendingEntryID = MutableStateFlow<String?>(null)
+    private val _pendingDelete = MutableStateFlow<MemoryDrawer?>(null)
+    private val _deleteError = MutableStateFlow<String?>(null)
+    val deleteError = _deleteError.asStateFlow()
+
+    val isLoadingFullDrawer: StateFlow<Boolean> = _pendingEntryID.map { it != null }
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
+    val isDeletingDrawer: StateFlow<Boolean> = _pendingDelete.map { it != null }
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
     // REQUEST UUIDs
     private val _overviewRequestUUID = MutableStateFlow<String?>(null)
     private val _wingsRequestUUID = MutableStateFlow<String?>(null)
     private val _searchRequestUUID = MutableStateFlow<String?>(null)
+    private val _entryRequestUUID = MutableStateFlow<String?>(null)
+    private val _deleteRequestUUID = MutableStateFlow<String?>(null)
 
     private val _lastKnowledgeViewedAt = MutableStateFlow(0L)   // TODO: Persist between sessions
     private val _memoryOverview = MutableStateFlow<MemoryOverview?>(null)
@@ -65,7 +83,8 @@ class KnowledgeScreenViewModel : VModel {
     private val _searchResults = MutableStateFlow<MemorySearchResults?>(null)
     val searchResults = _searchResults.asStateFlow()
     private val _searchLimit = MutableStateFlow(DEFAULT_NUM_BATCH_RESULTS)
-    private var lastSearchQuery: String? = null
+    private val _lastSearchQuery = MutableStateFlow<String?>(null)
+    val lastSearchQuery = _lastSearchQuery.asStateFlow()
 
     val canLoadMoreResults: StateFlow<Boolean> =
         combine(_searchResults, _searchLimit) { results, limit ->
@@ -91,7 +110,7 @@ class KnowledgeScreenViewModel : VModel {
             KnowledgeStatistics(
                 totalKnowledge = overview?.status?.totalDrawers,
                 domains = overview?.status?.wings,
-                lastUpdated = cells.firstOrNull()?.filedAtFormattedRelative ?: "---"
+                lastUpdated = cells.firstOrNull()?.drawer?.filedAtFormattedRelative ?: "---"
             )
         }.stateIn(scope, SharingStarted.Eagerly, KnowledgeStatistics())
 
@@ -130,6 +149,42 @@ class KnowledgeScreenViewModel : VModel {
                         _searchResults.value = results
                     }
                     _pendingSearchQuery.value = null
+                }
+            }
+        }
+
+        scope.launch {
+            combine(_entryRequestUUID, dawson.memoryResponses) { requestUUID, responses ->
+                requestUUID?.let { responses[it] }
+            }.collect { response ->
+                if (response?.dataType == MemoryData.DataType.ENTRY) {
+                    response.payloadAs<MemoryDrawer>()?.let { full ->
+                        // Only upgrade if the popup is still showing this drawer
+                        if (_detailDrawer.value?.id == full.id) {
+                            _detailDrawer.value = full
+                        }
+                    }
+                    _pendingEntryID.value = null
+                }
+            }
+        }
+
+        scope.launch {
+            combine(_deleteRequestUUID, dawson.memoryResponses) { requestUUID, responses ->
+                requestUUID?.let { responses[it] }
+            }.collect { response ->
+                if (response?.dataType == MemoryData.DataType.DELETE) {
+                    val result = response.payloadAs<MemoryDeleteResult>()
+                    val deleted = _pendingDelete.value
+                    _pendingDelete.value = null
+                    if ((result?.success == true) && (deleted != null)) {
+                        removeDrawerLocally(deleted)
+                        closeDrawerDetail()
+                        requestOverview()
+                    } else {
+                        _deleteError.value = result?.error
+                            ?: "Delete failed — the memory may not have been found."
+                    }
                 }
             }
         }
@@ -173,17 +228,16 @@ class KnowledgeScreenViewModel : VModel {
                 id = index.toLong(),
                 drawer = drawer,
                 onSelect = {
-                    // TODO: Navigate to drawer detail view (full content + delete);
-                    //  detail requires an ENTRY request — list drawers carry previews only
+                    showDrawerDetail(drawer)
                 },
                 onWingRoomClick = {
                     // TODO: Navigate to wing/room browse view
                 }
             ).apply {
-                isNew = ((filedAtMillis ?: 0L) > lastViewedAt)
+                isNew = ((drawer.filedAtTimestamp ?: 0L) > lastViewedAt)
             }
         }
-            .sortedByDescending { it.filedAtMillis ?: 0L }
+            .sortedByDescending { it.drawer.filedAtTimestamp ?: 0L }
     }
 
     private fun getSearchResultCellViewModels(drawers: List<MemoryDrawer>): List<KnowledgeCellViewModel> {
@@ -193,7 +247,7 @@ class KnowledgeScreenViewModel : VModel {
                 id = index.toLong(),
                 drawer = drawer,
                 onSelect = {
-                    // TODO: Expand cell inline (full content is already present)
+                    showDrawerDetail(drawer)
                 },
                 onWingRoomClick = {
                     // TODO: Navigate to wing/room browse view
@@ -240,13 +294,13 @@ class KnowledgeScreenViewModel : VModel {
         val trimmed = query.trim().take(MAX_SEARCH_QUERY_CHARS)
         if (trimmed.isEmpty()) return
 
-        lastSearchQuery = trimmed
+        _lastSearchQuery.value = trimmed
         _searchLimit.value = DEFAULT_NUM_BATCH_RESULTS  // new query resets the window
         fireSearch(trimmed, DEFAULT_NUM_BATCH_RESULTS)
     }
 
     fun loadMoreSearchResults() {
-        val query = lastSearchQuery ?: return
+        val query = _lastSearchQuery.value ?: return
         if (_pendingSearchQuery.value != null) return
 
         val newLimit = minOf((_searchLimit.value + DEFAULT_NUM_BATCH_RESULTS), MAX_SEARCH_RESULTS)
@@ -268,7 +322,7 @@ class KnowledgeScreenViewModel : VModel {
     fun clearSearch() {
         _searchResults.value = null
         _searchLimit.value = DEFAULT_NUM_BATCH_RESULTS
-        lastSearchQuery = null
+        _lastSearchQuery.value = null
         _pendingSearchQuery.value = null
         _searchRequestUUID.value = null
     }
@@ -284,6 +338,63 @@ class KnowledgeScreenViewModel : VModel {
 
     fun markKnowledgeViewed() {
         _lastKnowledgeViewedAt.value = Clock.System.now().toEpochMilliseconds()
+    }
+
+    fun showDrawerDetail(drawer: MemoryDrawer) {
+        _deleteError.value = null
+        _detailDrawer.value = drawer
+        // Lists carry previews; fetch the full entry when we have an id.
+        // Search hits have no id but already carry full content — no fetch.
+        if (drawer.id.isNotEmpty()) {
+            val dataUUID = Uuid.random().toString()
+            _entryRequestUUID.value = dataUUID
+            _pendingEntryID.value = drawer.id
+            dawson.requestMemory(
+                dataUUID = dataUUID,
+                dataType = MemoryData.DataType.ENTRY,
+                query = MemoryQuery(drawerID = drawer.id)
+            )
+        }
+    }
+
+    fun closeDrawerDetail() {
+        _detailDrawer.value = null
+        _pendingEntryID.value = null
+        _deleteError.value = null
+    }
+
+    fun requestDeleteDrawer(drawer: MemoryDrawer) {
+        if (_pendingDelete.value != null) return
+        _deleteError.value = null
+        _pendingDelete.value = drawer
+
+        val dataUUID = Uuid.random().toString()
+        _deleteRequestUUID.value = dataUUID
+        dawson.requestMemory(
+            dataUUID = dataUUID,
+            dataType = MemoryData.DataType.DELETE,
+            query = MemoryQuery(
+                drawerID = drawer.id.takeIf { it.isNotEmpty() },
+                // No id (search hit) → server resolves via duplicate check on verbatim content
+                content = drawer.content.takeIf { drawer.id.isEmpty() }
+            )
+        )
+    }
+
+    private fun removeDrawerLocally(drawer: MemoryDrawer) {
+        _searchResults.value = _searchResults.value?.let { results ->
+            results.copy(results = results.results.filterNot {
+                (it === drawer) || ((drawer.id.isNotEmpty()) && (it.id == drawer.id))
+            })
+        }
+    }
+
+    fun openWing(wing: String) {
+        // TODO: Navigate to wing browse view (rooms within wing)
+    }
+
+    fun openRoom(wing: String, room: String) {
+        // TODO: Navigate to room browse view (entries within room)
     }
 
     companion object {

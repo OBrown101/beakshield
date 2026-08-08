@@ -1,7 +1,6 @@
 package com.beakshield.memory
 
 import kotlin.math.roundToInt
-import kotlin.time.Instant
 
 object Memory {
     const val MAX_TITLE_CHARS = 80
@@ -29,19 +28,6 @@ object Memory {
             .filter { it.isNotBlank() }
             .joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } }
             .take(MAX_TITLE_CHARS)
-    }
-
-    fun parseDrawerTimestamp(timestamp: String): Long? {
-        return try {
-            Instant.parse(timestamp).toEpochMilliseconds()
-        } catch (e: Exception) {
-            // Palace timestamps have no zone suffix (e.g. 2026-06-22T13:22:55.234743)
-            try {
-                Instant.parse(timestamp + "Z").toEpochMilliseconds()
-            } catch (e: Exception) {
-                null
-            }
-        }
     }
 
     fun similarityLabel(value: Double?): String? {

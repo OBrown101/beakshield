@@ -48,6 +48,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.beakshield.DatetimeHandler.formatTimestampAbbrev
 import com.beakshield.borderColor
 import com.beakshield.cardColor
 import com.beakshield.dangerColor
@@ -63,7 +64,6 @@ import com.beakshield.dawsonGold
 import com.beakshield.dawsonNavy
 import com.beakshield.dawsonRed
 import com.beakshield.elevatedSurfaceColor
-import com.beakshield.formatTimestamp
 import com.beakshield.lightGreenColor
 import com.beakshield.textPrimaryColor
 import com.beakshield.textSecondaryColor
@@ -157,7 +157,7 @@ private fun ChatBubble(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = formatTimestamp(messages.maxOfOrNull { it.createdTimestamp }) ?: "",
+                    text = formatTimestampAbbrev(messages.maxOfOrNull { it.createdTimestamp }) ?: "",
                     color = textSecondaryColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium

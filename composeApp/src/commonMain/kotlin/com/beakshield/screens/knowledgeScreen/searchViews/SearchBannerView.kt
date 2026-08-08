@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +28,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +61,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun SearchBannerView(
     modifier: Modifier = Modifier,
+    query: String? = null,
     popularSearches: List<String> = listOf("USBManager", "Kotlin Coroutines", "Compose Navigation", "Email Tone"),
     isSearching: Boolean = false,
     searchActive: Boolean = false,
@@ -110,6 +114,7 @@ fun SearchBannerView(
                 Spacer(Modifier.height(28.dp))
                 KnowledgeSearchBar(
                     modifier = Modifier.fillMaxWidth(),
+                    query = query,
                     isSearching = isSearching,
                     searchActive = searchActive,
                     onSearch = onSearch,
@@ -128,13 +133,17 @@ fun SearchBannerView(
 @Composable
 private fun KnowledgeSearchBar(
     modifier: Modifier = Modifier,
-    placeholderText: String = "Search knowledge...",
+    query: String? = null,
     isSearching: Boolean,
     searchActive: Boolean,
     onSearch: (String) -> Unit,
     onClearSearch: () -> Unit
 ) {
     var text by remember { mutableStateOf("") }
+
+    LaunchedEffect(query) {
+        text = query ?: ""
+    }
 
     Box(
         modifier = modifier
@@ -192,7 +201,7 @@ private fun KnowledgeSearchBar(
                     ) {
                         if (text.isEmpty()) {
                             Text(
-                                text = placeholderText,
+                                text = "Search knowledge...",
                                 style = TextStyle(
                                     color = textSecondaryColor,
                                     fontSize = 15.sp
@@ -222,15 +231,17 @@ private fun KnowledgeSearchBar(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PopularSearchesRow(
     popularSearches: List<String>,
     onPopularSearchClick: (String) -> Unit
 ) {
-    Row(
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        itemVerticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             modifier = Modifier.padding(end = 10.dp),

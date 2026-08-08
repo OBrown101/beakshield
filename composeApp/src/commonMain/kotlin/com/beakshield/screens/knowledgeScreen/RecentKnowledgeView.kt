@@ -173,7 +173,7 @@ private fun RecentKnowledgeTableCell(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = cellViewModel.title,
+                        text = drawer.title,
                         color = textColor,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -189,7 +189,7 @@ private fun RecentKnowledgeTableCell(
                         onClick = cellViewModel.onWingRoomClick
                     )
                 }
-                cellViewModel.body?.let { body ->
+                drawer.body?.let { body ->
                     Text(
                         modifier = Modifier.padding(top = 4.dp),
                         text = body,
@@ -235,7 +235,7 @@ private fun RecentKnowledgeTableCell(
                 }
                 Text(
                     modifier = Modifier.padding(start = 26.dp, top = 3.dp),
-                    text = cellViewModel.filedAtFormatted,
+                    text = drawer.filedAtFormatted,
                     color = textSecondaryColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Normal

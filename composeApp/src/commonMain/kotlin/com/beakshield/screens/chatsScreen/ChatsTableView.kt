@@ -19,9 +19,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.beakshield.DatetimeHandler.formatTimestampAbbrev
 import com.beakshield.composables.TableView
 import com.beakshield.dawsonRed
-import com.beakshield.formatTimestamp
 import com.beakshield.primaryColor
 import com.beakshield.tablecells.ChatCellViewModel
 import com.beakshield.textColor
@@ -121,7 +121,7 @@ fun ChatTableCell(
             )
             Text(
                 modifier = Modifier.align(Alignment.End),
-                text = formatTimestamp(cellViewModel.chat.messages.value.lastOrNull()?.createdTimestamp) ?: "---",
+                text = formatTimestampAbbrev(cellViewModel.chat.messages.value.lastOrNull()?.createdTimestamp) ?: "---",
                 color = textMutedColor,
                 fontSize = 12.sp,
                 maxLines = 1

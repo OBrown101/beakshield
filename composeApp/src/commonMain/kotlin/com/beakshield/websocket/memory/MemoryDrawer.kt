@@ -1,6 +1,13 @@
 package com.beakshield.websocket.memory
 
+import com.beakshield.DatetimeHandler.formatRelativeTime
+import com.beakshield.DatetimeHandler.formatTimestampAbbrev
+import com.beakshield.DatetimeHandler.timestampToDatetime
+import com.beakshield.memory.Memory.DERIVED_TITLE_CHARS
+import com.beakshield.memory.Memory.MAX_TITLE_CHARS
+import com.beakshield.memory.Memory.deriveAAAKTitle
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 @Serializable
 data class MemoryDrawer(
@@ -14,6 +21,61 @@ data class MemoryDrawer(
     val filedAt: String = "",
     val similarity: Double? = null      // search results only
 ) {
+
+    val title: String
+        get() {
+            val firstLine = content.lineSequence().firstOrNull()?.trim() ?: ""
+            val aaakTitle = deriveAAAKTitle(firstLine)
+            return when {
+                (aaakTitle != null) -> aaakTitle
+                (firstLine.isNotEmpty() && (firstLine.length <= MAX_TITLE_CHARS)) -> firstLine
+                else -> content.trim().take(DERIVED_TITLE_CHARS)
+            }
+        }
+
+    val body: String?
+        get() {
+            val firstLine = content.lineSequence().firstOrNull()?.trim() ?: ""
+            val trimmed = content.trim()
+            return when {
+                // AAAK/diary entries: everything after the first line reads as body;
+                // the pipe-form first line is already summarized by the title.
+                (deriveAAAKTitle(firstLine) != null) -> trimmed
+                    .removePrefix(firstLine)
+                    .trim()
+                    .ifEmpty { null }
+
+                else -> trimmed
+                    .removePrefix(title)
+                    .trim()
+                    .ifEmpty { null }
+            }
+        }
+
+    val filedAtDatetime: String?
+        get() = parseDrawerTimestamp(filedAt)?.let { timestampToDatetime(it) }
+
+    val filedAtTimestamp: Long?
+        get() = parseDrawerTimestamp(filedAt)
+
+    val filedAtFormatted: String
+        get() = formatTimestampAbbrev(filedAtTimestamp, true) ?: filedAt.take(10).ifEmpty { "---" }
+
+    val filedAtFormattedRelative: String
+        get() = formatRelativeTime(filedAtTimestamp) ?: filedAt.take(10).ifEmpty { "---" }
+
+    fun parseDrawerTimestamp(timestamp: String): Long? {
+        return try {
+            Instant.parse(timestamp).toEpochMilliseconds()
+        } catch (e: Exception) {
+            // Palace timestamps have no zone suffix (e.g. 2026-06-22T13:22:55.234743)
+            try {
+                Instant.parse(timestamp + "Z").toEpochMilliseconds()
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
 
     object MockMemoryEntry {
         val mockEntries = listOf(

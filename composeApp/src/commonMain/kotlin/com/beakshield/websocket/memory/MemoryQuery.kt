@@ -7,6 +7,7 @@ data class MemoryQuery(
     val wing: String? = null,
     val room: String? = null,
     val drawerID: String? = null,
+    val content: String? = null,
     val limit: Int? = null,
     val offset: Int? = null,
     val since: String? = null,      // ISO, inclusive (filed_at)
