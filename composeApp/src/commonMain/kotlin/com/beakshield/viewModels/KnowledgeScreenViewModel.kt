@@ -8,6 +8,7 @@ import com.beakshield.tablecells.KnowledgeCellViewModel
 import com.beakshield.websocket.memory.MemoryData
 import com.beakshield.websocket.memory.MemoryDeleteResult
 import com.beakshield.websocket.memory.MemoryDrawer
+import com.beakshield.websocket.memory.MemoryDrawerPage
 import com.beakshield.websocket.memory.MemoryOverview
 import com.beakshield.websocket.memory.MemoryQuery
 import com.beakshield.websocket.memory.MemorySearchResults
@@ -55,6 +56,7 @@ class KnowledgeScreenViewModel : VModel {
     // REQUEST UUIDs
     private val _overviewRequestUUID = MutableStateFlow<String?>(null)
     private val _wingsRequestUUID = MutableStateFlow<String?>(null)
+    private val _allKnowledgeRequestUUID = MutableStateFlow<String?>(null)
     private val _searchRequestUUID = MutableStateFlow<String?>(null)
     private val _entryRequestUUID = MutableStateFlow<String?>(null)
     private val _deleteRequestUUID = MutableStateFlow<String?>(null)
@@ -64,6 +66,26 @@ class KnowledgeScreenViewModel : VModel {
     val memoryOverview = _memoryOverview.asStateFlow()
     private val _memoryWings = MutableStateFlow<MemoryWingList?>(null)
 
+    // ALL KNOWLEDGE
+    private val _showAllKnowledge = MutableStateFlow(false)
+    val showAllKnowledge = _showAllKnowledge.asStateFlow()
+    private val _allKnowledgePage = MutableStateFlow<MemoryDrawerPage?>(null)
+    private val _isLoadingAllKnowledge = MutableStateFlow(false)
+    val isLoadingAllKnowledge = _isLoadingAllKnowledge.asStateFlow()
+
+    val allKnowledgeCellViewModels: StateFlow<List<KnowledgeCellViewModel>> =
+        combine(_allKnowledgePage, _lastKnowledgeViewedAt) { page, lastViewedAt ->
+            getKnowledgeCellViewModels(page?.drawers ?: emptyList(), lastViewedAt)
+        }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    val allKnowledgeTotal: StateFlow<Int> = _allKnowledgePage
+        .map { it?.total ?: 0 }
+        .stateIn(scope, SharingStarted.Eagerly, 0)
+
+    val canLoadMoreKnowledge: StateFlow<Boolean> = _allKnowledgePage
+        .map { page -> page != null && page.drawers.size < page.total }
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
     // DOMAINS
     private val _showAllDomains = MutableStateFlow(false)
     val showAllDomains = _showAllDomains.asStateFlow()
@@ -71,7 +93,7 @@ class KnowledgeScreenViewModel : VModel {
 
     val allDomainCellViewModels: StateFlow<List<DomainCellViewModel>> =
         _memoryWings.map { wings ->
-            getDomainCellViewModels(wings ?: return@map emptyList(), limit = null)
+            getDomainCellViewModels(wings ?: return@map emptyList())
         }.stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     val domainCellViewModels: StateFlow<List<DomainCellViewModel>> =
@@ -135,6 +157,26 @@ class KnowledgeScreenViewModel : VModel {
                     response.payloadAs<MemoryWingList>()?.let { wings ->
                         _memoryWings.value = wings
                     }
+                }
+            }
+        }
+
+        scope.launch {
+            combine(_allKnowledgeRequestUUID, dawson.memoryResponses) { requestUUID, responses ->
+                requestUUID?.let { responses[it] }
+            }.collect { response ->
+                if (response?.dataType == MemoryData.DataType.PAGE_ENTRIES) {
+                    response.payloadAs<MemoryDrawerPage>()?.let { page ->
+                        _allKnowledgePage.value = if (page.offset == 0) {
+                            page
+                        } else {
+                            page.copy(
+                                drawers = (_allKnowledgePage.value?.drawers ?: emptyList()) + page.drawers,
+                                offset = 0
+                            )
+                        }
+                    }
+                    _isLoadingAllKnowledge.value = false
                 }
             }
         }
@@ -206,19 +248,6 @@ class KnowledgeScreenViewModel : VModel {
                 requestWings()
                 delay(10000)
             }
-        }
-    }
-
-    private fun getDomainCellViewModels(wings: MemoryWingList, limit: Int? = MAX_DOMAIN_CARDS): List<DomainCellViewModel> {
-        val selected = limit?.let { wings.wings.take(it) } ?: wings.wings
-        return selected.mapIndexed { index, wing ->
-            DomainCellViewModel(
-                id = index.toLong(),
-                wing = wing,
-                onSelect = {
-                    // TODO: Navigate to wing browse view (rooms within wing)
-                }
-            )
         }
     }
 
@@ -327,8 +356,39 @@ class KnowledgeScreenViewModel : VModel {
         _searchRequestUUID.value = null
     }
 
+    fun openAllKnowledge() {
+        clearSearch()
+        _showAllDomains.value = false
+        _showAllKnowledge.value = true
+        if (_allKnowledgePage.value == null) {
+            requestAllKnowledge(DEFAULT_NUM_BATCH_RESULTS)
+        }
+    }
+
+    fun loadMoreKnowledge() {
+        val page = _allKnowledgePage.value ?: return
+        if (_isLoadingAllKnowledge.value || page.drawers.size >= page.total) return
+        requestAllKnowledge(limit = DEFAULT_NUM_BATCH_RESULTS, offset = page.drawers.size)
+    }
+
+    private fun requestAllKnowledge(limit: Int, offset: Int = 0) {
+        val dataUUID = Uuid.random().toString()
+        _allKnowledgeRequestUUID.value = dataUUID
+        _isLoadingAllKnowledge.value = true
+        dawson.requestMemory(
+            dataUUID = dataUUID,
+            dataType = MemoryData.DataType.PAGE_ENTRIES,
+            query = MemoryQuery(limit = limit, offset = offset)
+        )
+    }
+
+    fun closeAllKnowledge() {
+        _showAllKnowledge.value = false
+    }
+
     fun openAllDomains() {
         clearSearch()
+        _showAllKnowledge.value = false
         _showAllDomains.value = true
     }
 
@@ -386,6 +446,14 @@ class KnowledgeScreenViewModel : VModel {
             results.copy(results = results.results.filterNot {
                 (it === drawer) || ((drawer.id.isNotEmpty()) && (it.id == drawer.id))
             })
+        }
+        _allKnowledgePage.value = _allKnowledgePage.value?.let { page ->
+            page.copy(
+                drawers = page.drawers.filterNot {
+                    (it === drawer) || ((drawer.id.isNotEmpty()) && (it.id == drawer.id))
+                },
+                total = (page.total - 1).coerceAtLeast(0)
+            )
         }
     }
 

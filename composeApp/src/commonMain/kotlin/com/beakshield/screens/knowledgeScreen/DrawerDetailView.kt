@@ -127,7 +127,7 @@ fun DrawerDetailView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 6.dp)
-                        .heightIn(min = 120.dp, max = 300.dp)
+                        .heightIn(min = 120.dp, max = 200.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(backgroundColor.copy(alpha = 0.55f))
                         .border(1.dp, borderColor.copy(alpha = 0.65f), RoundedCornerShape(8.dp))
@@ -208,19 +208,22 @@ private fun DetailHeader(
                 tint = wingStyle.color
             )
         }
-        Text(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 14.dp),
-            text = Memory.deriveAAAKTitle(drawer.content.lineSequence().firstOrNull()?.trim() ?: "")
-                ?: drawer.content.trim().take(Memory.DERIVED_TITLE_CHARS).ifEmpty { "Memory" },
-            fontFamily = FontFamily.Serif,
-            color = textColor,
-            fontSize = 17.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
+        SelectionContainer(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = 14.dp),
+                text = Memory.deriveAAAKTitle(drawer.content.lineSequence().firstOrNull()?.trim() ?: "")
+                    ?: drawer.content.trim().take(Memory.DERIVED_TITLE_CHARS).ifEmpty { "Memory" },
+                fontFamily = FontFamily.Serif,
+                color = textColor,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
         Icon(
             modifier = Modifier
                 .size(22.dp)

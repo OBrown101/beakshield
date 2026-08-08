@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -23,18 +24,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices.TABLET
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.backgroundColor
 import com.beakshield.borderColor
 import com.beakshield.composables.BasicBox
-import com.beakshield.composables.TableView
 import com.beakshield.darkGreenColor
 import com.beakshield.dawsonGold
 import com.beakshield.lightGreenColor
@@ -113,27 +113,27 @@ private fun RecentKnowledgeTableView(
     modifier: Modifier = Modifier,
     knowledgeCellViewModels: List<KnowledgeCellViewModel>
 ) {
-    TableView(
-        modifier = modifier,
-        cellViewModels = knowledgeCellViewModels,
-        cellHeight = { 95.dp },
-        emptyTableText = "Nothing learned yet",
-        emptyTableTextColor = textSecondaryColor,
-        enableOnClick = true,
-        enableSwipeLeft = false,
-        borderColor = Color.Transparent,
-        cellSpacing = 12,
-        cellOnClick = { it.onSelect() }
-    ) { cellModifier, cell ->
-        RecentKnowledgeTableCell(
-            modifier = cellModifier,
-            cellViewModel = cell
-        )
+    val cellHeight = 70
+    val padding = 12
+    BoxWithConstraints(modifier = modifier) {
+        val visibleCells = (maxHeight / (cellHeight + padding).dp).toInt().coerceAtLeast(1)
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            knowledgeCellViewModels.take(visibleCells).forEach { cell ->
+                RecentKnowledgeTableCell(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .size(height = cellHeight.dp, width = Dp.Unspecified)
+                        .clickable { cell.onSelect() },
+                    cellViewModel = cell
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun RecentKnowledgeTableCell(
+internal fun RecentKnowledgeTableCell(
     modifier: Modifier = Modifier,
     cellViewModel: KnowledgeCellViewModel
 ) {
@@ -151,7 +151,7 @@ private fun RecentKnowledgeTableCell(
         ) {
             Box(
                 modifier = Modifier
-                    .size(46.dp)
+                    .size(40.dp)
                     .background(wingStyle.color.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
                     .border(1.dp, wingStyle.color.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
@@ -210,7 +210,7 @@ private fun RecentKnowledgeTableCell(
             )
             Column(
                 modifier = Modifier
-                    .width(220.dp)
+                    .width(150.dp)
                     .padding(start = 15.dp),
                 verticalArrangement = Arrangement.Center
             ) {

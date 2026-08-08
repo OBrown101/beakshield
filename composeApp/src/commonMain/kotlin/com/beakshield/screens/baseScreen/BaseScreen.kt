@@ -313,7 +313,7 @@ fun HeaderScreen(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(20.dp)
         ) {
             Row(

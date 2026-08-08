@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -25,6 +27,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Devices.TABLET
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.beakshield.composables.beakshieldScrollbar
 import com.beakshield.screens.Destination
 import com.beakshield.screens.baseScreen.HeaderScreen
 import com.beakshield.screens.knowledgeScreen.domainViews.DomainsOverviewView
@@ -42,10 +45,16 @@ fun ScreenBanner(
     navToScreen: (Destination) -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
     val userInputFocusReq = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val knowledgeCellViewModels by knowledgeScreenViewModel.knowledgeCellViewModels.collectAsState()
     val knowledgeStatistics by knowledgeScreenViewModel.knowledgeStatistics.collectAsState()
+    val showAllKnowledge by knowledgeScreenViewModel.showAllKnowledge.collectAsState()
+    val allKnowledgeCellViewModels by knowledgeScreenViewModel.allKnowledgeCellViewModels.collectAsState()
+    val allKnowledgeTotal by knowledgeScreenViewModel.allKnowledgeTotal.collectAsState()
+    val canLoadMoreKnowledge by knowledgeScreenViewModel.canLoadMoreKnowledge.collectAsState()
+    val isLoadingAllKnowledge by knowledgeScreenViewModel.isLoadingAllKnowledge.collectAsState()
 
     val searchResults by knowledgeScreenViewModel.searchResults.collectAsState()
     val canLoadMoreResults by knowledgeScreenViewModel.canLoadMoreResults.collectAsState()
@@ -85,7 +94,16 @@ fun ScreenBanner(
             subtitle = "Explore the knowledge your kingdom has acquired.",
             destination = Destination.KNOWLEDGE
         ) {
-            Column() {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (searchResults != null || showAllKnowledge) Modifier else {
+                            Modifier
+                                .verticalScroll(scrollState)
+                                .beakshieldScrollbar(scrollState)
+                        }
+                    )
+            ) {
                 Row(
                     modifier = Modifier.height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(padBetween.dp)
@@ -132,11 +150,23 @@ fun ScreenBanner(
                             onClearSearch = { knowledgeScreenViewModel.clearSearch() }
                         )
                     }
-                    showAllDomains -> {
-                        DomainsView(
+                    showAllKnowledge -> {
+                        AllKnowledgeView(
                             modifier = Modifier
                                 .padding(top = padBetween.dp)
                                 .weight(1f),
+                            knowledgeCellViewModels = allKnowledgeCellViewModels,
+                            totalKnowledge = allKnowledgeTotal,
+                            canLoadMore = canLoadMoreKnowledge,
+                            isLoadingMore = isLoadingAllKnowledge,
+                            onLoadMore = { knowledgeScreenViewModel.loadMoreKnowledge() },
+                            onClose = { knowledgeScreenViewModel.closeAllKnowledge() }
+                        )
+                    }
+                    showAllDomains -> {
+                        DomainsView(
+                            modifier = Modifier
+                                .padding(top = padBetween.dp),
                             domainCellViewModels = allDomainCellViewModels,
                             onClose = { knowledgeScreenViewModel.closeAllDomains() }
                         )
@@ -145,8 +175,9 @@ fun ScreenBanner(
                         RecentKnowledgeView(
                             modifier = Modifier
                                 .padding(top = padBetween.dp)
-                                .weight(1f),
-                            knowledgeCellViewModels = knowledgeCellViewModels
+                                .then(if (knowledgeCellViewModels.isEmpty()) Modifier else Modifier.height(420.dp)),
+                            knowledgeCellViewModels = knowledgeCellViewModels,
+                            onViewAll = { knowledgeScreenViewModel.openAllKnowledge() }
                         )
                         if (!showAllDomains) {
                             DomainsOverviewView(

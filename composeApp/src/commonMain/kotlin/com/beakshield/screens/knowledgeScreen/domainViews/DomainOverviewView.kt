@@ -153,7 +153,7 @@ fun DomainCard(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "knowledge entries",
+                text = "entries",
                 color = textSecondaryColor,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Normal
