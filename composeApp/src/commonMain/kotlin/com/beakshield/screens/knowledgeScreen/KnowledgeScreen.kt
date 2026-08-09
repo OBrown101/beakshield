@@ -34,6 +34,8 @@ import com.beakshield.screens.knowledgeScreen.domainViews.DomainsOverviewView
 import com.beakshield.screens.knowledgeScreen.domainViews.DomainsView
 import com.beakshield.screens.knowledgeScreen.searchViews.SearchBannerView
 import com.beakshield.screens.knowledgeScreen.searchViews.SearchResultsView
+import com.beakshield.screens.knowledgeScreen.topicViews.TopicKnowledgeView
+import com.beakshield.screens.knowledgeScreen.topicViews.TopicsView
 import com.beakshield.viewModels.KnowledgeScreenViewModel
 import kotlinx.coroutines.delay
 
@@ -70,6 +72,14 @@ fun ScreenBanner(
     val isLoadingFullDrawer by knowledgeScreenViewModel.isLoadingFullDrawer.collectAsState()
     val isDeletingDrawer by knowledgeScreenViewModel.isDeletingDrawer.collectAsState()
     val deleteError by knowledgeScreenViewModel.deleteError.collectAsState()
+
+    val selectedBrowseWing by knowledgeScreenViewModel.selectedBrowseWing.collectAsState()
+    val selectedBrowseRoom by knowledgeScreenViewModel.selectedBrowseRoom.collectAsState()
+    val browseTotal by knowledgeScreenViewModel.browseTotal.collectAsState()
+    val browseKnowledgeCellViewModels by knowledgeScreenViewModel.browseKnowledgeCellViewModels.collectAsState()
+    val topicCellViewModels by knowledgeScreenViewModel.topicCellViewModels.collectAsState()
+    val canLoadMoreBrowse by knowledgeScreenViewModel.canLoadMoreBrowse.collectAsState()
+    val isLoadingBrowsePage by knowledgeScreenViewModel.isLoadingBrowsePage.collectAsState()
 
     val padBetween = 12
 
@@ -161,6 +171,27 @@ fun ScreenBanner(
                             isLoadingMore = isLoadingAllKnowledge,
                             onLoadMore = { knowledgeScreenViewModel.loadMoreKnowledge() },
                             onClose = { knowledgeScreenViewModel.closeAllKnowledge() }
+                        )
+                    }
+                    (selectedBrowseRoom != null) -> {
+                        TopicKnowledgeView(
+                            modifier = Modifier.padding(top = padBetween.dp).weight(1f),
+                            wing = selectedBrowseWing ?: "",
+                            room = selectedBrowseRoom ?: "",
+                            totalEntries = browseTotal,
+                            knowledgeCellViewModels = browseKnowledgeCellViewModels,
+                            canLoadMore = canLoadMoreBrowse,
+                            isLoadingMore = isLoadingBrowsePage,
+                            onLoadMore = { knowledgeScreenViewModel.loadMoreBrowseEntries() },
+                            onBack = { knowledgeScreenViewModel.closeTopicKnowledge() }
+                        )
+                    }
+                    (selectedBrowseWing != null) -> {
+                        TopicsView(
+                            modifier = Modifier.padding(top = padBetween.dp).weight(1f),
+                            wing = selectedBrowseWing ?: "",
+                            topicCellViewModels = topicCellViewModels,
+                            onBack = { knowledgeScreenViewModel.closeTopics() }
                         )
                     }
                     showAllDomains -> {

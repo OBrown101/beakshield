@@ -42,8 +42,6 @@ class Dawson {
     private val scope = CoroutineScope(Dispatchers.Default)
     private val socket = WebSocketClient()
 
-    val _connectionState = socket.connectionState
-
     val connectionState = socket.connectionState
     private var syncTimerJob: Job? = null
     private var connectTimerJob: Job? = null

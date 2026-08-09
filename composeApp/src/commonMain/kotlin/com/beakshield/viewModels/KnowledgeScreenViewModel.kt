@@ -5,16 +5,19 @@ import com.beakshield.memory.Memory.MAX_SEARCH_QUERY_CHARS
 import com.beakshield.memory.Memory.MAX_SEARCH_RESULTS
 import com.beakshield.tablecells.DomainCellViewModel
 import com.beakshield.tablecells.KnowledgeCellViewModel
+import com.beakshield.tablecells.TopicCellViewModel
 import com.beakshield.websocket.memory.MemoryData
 import com.beakshield.websocket.memory.MemoryDeleteResult
 import com.beakshield.websocket.memory.MemoryDrawer
 import com.beakshield.websocket.memory.MemoryDrawerPage
 import com.beakshield.websocket.memory.MemoryOverview
 import com.beakshield.websocket.memory.MemoryQuery
+import com.beakshield.websocket.memory.MemoryRoomList
 import com.beakshield.websocket.memory.MemorySearchResults
 import com.beakshield.websocket.memory.MemoryWingList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +33,7 @@ import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
+@OptIn(ExperimentalUuidApi::class, ExperimentalCoroutinesApi::class)
 class KnowledgeScreenViewModel : VModel {
     private val scope = CoroutineScope(Dispatchers.Default)
     private var memoryTimerJob: Job? = null
@@ -56,6 +59,8 @@ class KnowledgeScreenViewModel : VModel {
     // REQUEST UUIDs
     private val _overviewRequestUUID = MutableStateFlow<String?>(null)
     private val _wingsRequestUUID = MutableStateFlow<String?>(null)
+    private val _roomsRequestUUID = MutableStateFlow<String?>(null)
+    private val _pageRequestUUID = MutableStateFlow<String?>(null)
     private val _allKnowledgeRequestUUID = MutableStateFlow<String?>(null)
     private val _searchRequestUUID = MutableStateFlow<String?>(null)
     private val _entryRequestUUID = MutableStateFlow<String?>(null)
@@ -66,6 +71,36 @@ class KnowledgeScreenViewModel : VModel {
     val memoryOverview = _memoryOverview.asStateFlow()
     private val _memoryWings = MutableStateFlow<MemoryWingList?>(null)
 
+    // BROWSING WINGS/ROOMS ENTRIES
+    private val _selectedBrowseWing = MutableStateFlow<String?>(null)
+    private val _selectedBrowseRoom = MutableStateFlow<String?>(null)
+    val selectedBrowseWing = _selectedBrowseWing.asStateFlow()
+    val selectedBrowseRoom = _selectedBrowseRoom.asStateFlow()
+
+    private val _memoryRooms = MutableStateFlow<MemoryRoomList?>(null)
+    private val _browseEntries = MutableStateFlow<List<MemoryDrawer>>(emptyList())
+    private val _browseTotal = MutableStateFlow(0)
+    private val _pendingPage = MutableStateFlow(false)
+    val browseTotal = _browseTotal.asStateFlow()
+
+    val isLoadingBrowsePage: StateFlow<Boolean> = _pendingPage.stateIn(scope, SharingStarted.Eagerly, false)
+
+    val canLoadMoreBrowse: StateFlow<Boolean> =
+        combine(_browseEntries, _browseTotal) { entries, total ->
+            entries.isNotEmpty() && (entries.size < total)
+        }.stateIn(scope, SharingStarted.Eagerly, false)
+
+    val topicCellViewModels: StateFlow<List<TopicCellViewModel>> =
+        combine(_memoryRooms, _selectedBrowseWing) { rooms, wing ->
+            val rooms = rooms ?: return@combine emptyList()
+            val wing = wing ?: return@combine emptyList()
+            getTopicCellViewModels(rooms, wing)
+        }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    val browseKnowledgeCellViewModels: StateFlow<List<KnowledgeCellViewModel>> = _browseEntries.map { drawers ->
+        getBrowseKnowledgeCellViewModels(drawers)
+    }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+
     // ALL KNOWLEDGE
     private val _showAllKnowledge = MutableStateFlow(false)
     val showAllKnowledge = _showAllKnowledge.asStateFlow()
@@ -75,30 +110,31 @@ class KnowledgeScreenViewModel : VModel {
 
     val allKnowledgeCellViewModels: StateFlow<List<KnowledgeCellViewModel>> =
         combine(_allKnowledgePage, _lastKnowledgeViewedAt) { page, lastViewedAt ->
-            getKnowledgeCellViewModels(page?.drawers ?: emptyList(), lastViewedAt)
+            val drawers = page?.drawers ?: emptyList()
+            getKnowledgeCellViewModels(drawers, lastViewedAt)
         }.stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    val allKnowledgeTotal: StateFlow<Int> = _allKnowledgePage
-        .map { it?.total ?: 0 }
+    val allKnowledgeTotal: StateFlow<Int> = _allKnowledgePage.map { it?.total ?: 0 }
         .stateIn(scope, SharingStarted.Eagerly, 0)
 
-    val canLoadMoreKnowledge: StateFlow<Boolean> = _allKnowledgePage
-        .map { page -> page != null && page.drawers.size < page.total }
-        .stateIn(scope, SharingStarted.Eagerly, false)
+    val canLoadMoreKnowledge: StateFlow<Boolean> = _allKnowledgePage.map { page ->
+        (page != null) && (page.drawers.size < page.total)
+    }.stateIn(scope, SharingStarted.Eagerly, false)
 
     // DOMAINS
     private val _showAllDomains = MutableStateFlow(false)
     val showAllDomains = _showAllDomains.asStateFlow()
     private val _pendingSearchQuery = MutableStateFlow<String?>(null)
 
-    val allDomainCellViewModels: StateFlow<List<DomainCellViewModel>> =
-        _memoryWings.map { wings ->
-            getDomainCellViewModels(wings ?: return@map emptyList())
-        }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+    val allDomainCellViewModels: StateFlow<List<DomainCellViewModel>> = _memoryWings.map { wings ->
+        val wings = wings ?: return@map emptyList()
+        getDomainCellViewModels(wings)
+    }.stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     val domainCellViewModels: StateFlow<List<DomainCellViewModel>> =
         combine(_memoryWings, _memoryOverview) { wings, _ ->
-            getDomainCellViewModels(wings ?: return@combine emptyList())
+            val wings = wings ?: return@combine emptyList()
+            getDomainCellViewModels(wings, limit = MAX_DOMAIN_CARDS)
         }.stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     // SEARCH RELATED
@@ -138,95 +174,30 @@ class KnowledgeScreenViewModel : VModel {
 
     init {
         scope.launch {
-            combine(_overviewRequestUUID, dawson.memoryResponses) { requestUUID, responses ->
-                requestUUID?.let { responses[it] }
-            }.collect { response ->
-                if (response?.dataType == MemoryData.DataType.OVERVIEW) {
-                    response.payloadAs<MemoryOverview>()?.let { overview ->
-                        _memoryOverview.value = overview
-                    }
+            dawson.memoryResponses.collect { responses ->
+                _overviewRequestUUID.value?.let { responses[it] }?.let {
+                    handleOverviewData(it)  // Overview stats
                 }
-            }
-        }
-
-        scope.launch {
-            combine(_wingsRequestUUID, dawson.memoryResponses) { requestUUID, responses ->
-                requestUUID?.let { responses[it] }
-            }.collect { response ->
-                if (response?.dataType == MemoryData.DataType.LIST_WINGS) {
-                    response.payloadAs<MemoryWingList>()?.let { wings ->
-                        _memoryWings.value = wings
-                    }
+                _wingsRequestUUID.value?.let { responses[it] }?.let {
+                    handleListWingsData(it) // All wings
                 }
-            }
-        }
-
-        scope.launch {
-            combine(_allKnowledgeRequestUUID, dawson.memoryResponses) { requestUUID, responses ->
-                requestUUID?.let { responses[it] }
-            }.collect { response ->
-                if (response?.dataType == MemoryData.DataType.PAGE_ENTRIES) {
-                    response.payloadAs<MemoryDrawerPage>()?.let { page ->
-                        _allKnowledgePage.value = if (page.offset == 0) {
-                            page
-                        } else {
-                            page.copy(
-                                drawers = (_allKnowledgePage.value?.drawers ?: emptyList()) + page.drawers,
-                                offset = 0
-                            )
-                        }
-                    }
-                    _isLoadingAllKnowledge.value = false
+                _roomsRequestUUID.value?.let { responses[it] }?.let {
+                    handleListRoomsData(it) // All rooms
                 }
-            }
-        }
-
-        scope.launch {
-            combine(_searchRequestUUID, dawson.memoryResponses) { requestUUID, responses ->
-                requestUUID?.let { responses[it] }
-            }.collect { response ->
-                if (response?.dataType == MemoryData.DataType.SEARCH) {
-                    val results = response.payloadAs<MemorySearchResults>()
-                    if (results != null) {
-                        _searchResults.value = results
-                    }
-                    _pendingSearchQuery.value = null
+                _allKnowledgeRequestUUID.value?.let { responses[it] }?.let {
+                    handleAllKnowledgeData(it) // All drawers (paginated)
                 }
-            }
-        }
-
-        scope.launch {
-            combine(_entryRequestUUID, dawson.memoryResponses) { requestUUID, responses ->
-                requestUUID?.let { responses[it] }
-            }.collect { response ->
-                if (response?.dataType == MemoryData.DataType.ENTRY) {
-                    response.payloadAs<MemoryDrawer>()?.let { full ->
-                        // Only upgrade if the popup is still showing this drawer
-                        if (_detailDrawer.value?.id == full.id) {
-                            _detailDrawer.value = full
-                        }
-                    }
-                    _pendingEntryID.value = null
+                _searchRequestUUID.value?.let { responses[it] }?.let {
+                    handleSearchData(it)    // Search results
                 }
-            }
-        }
-
-        scope.launch {
-            combine(_deleteRequestUUID, dawson.memoryResponses) { requestUUID, responses ->
-                requestUUID?.let { responses[it] }
-            }.collect { response ->
-                if (response?.dataType == MemoryData.DataType.DELETE) {
-                    val result = response.payloadAs<MemoryDeleteResult>()
-                    val deleted = _pendingDelete.value
-                    _pendingDelete.value = null
-                    if ((result?.success == true) && (deleted != null)) {
-                        removeDrawerLocally(deleted)
-                        closeDrawerDetail()
-                        requestOverview()
-                    } else {
-                        _deleteError.value = result?.error
-                            ?: "Delete failed — the memory may not have been found."
-                    }
+                _entryRequestUUID.value?.let { responses[it] }?.let {
+                    handleEntryData(it)     // Specific drawer entry
+                }
+                _deleteRequestUUID.value?.let { responses[it] }?.let {
+                    handleDeleteData(it)    // Drawer delete
+                }
+                _pageRequestUUID.value?.let { responses[it] }?.let {
+                    handlePageData(it)      // Specific paginated drawers request
                 }
             }
         }
@@ -251,6 +222,88 @@ class KnowledgeScreenViewModel : VModel {
         }
     }
 
+    private fun handleOverviewData(data: MemoryData) {
+        if (data.dataType != MemoryData.DataType.OVERVIEW) return
+        data.payloadAs<MemoryOverview>()?.let {
+            _memoryOverview.value = it
+        }
+    }
+
+    private fun handleListWingsData(data: MemoryData) {
+        if (data.dataType != MemoryData.DataType.LIST_WINGS) return
+        data.payloadAs<MemoryWingList>()?.let {
+            _memoryWings.value = it
+        }
+    }
+
+    private fun handleListRoomsData(data: MemoryData) {
+        if (data.dataType != MemoryData.DataType.LIST_ROOMS) return
+        data.payloadAs<MemoryRoomList>()?.let {
+            _memoryRooms.value = it
+        }
+    }
+
+    private fun handleAllKnowledgeData(data: MemoryData) {
+        if (data.dataType != MemoryData.DataType.PAGE_ENTRIES) return
+        data.payloadAs<MemoryDrawerPage>()?.let { page ->
+            _allKnowledgePage.value = if (page.offset == 0) {
+                page
+            } else {
+                page.copy(
+                    drawers = (_allKnowledgePage.value?.drawers ?: emptyList()) + page.drawers,
+                    offset = 0
+                )
+            }
+        }
+        _isLoadingAllKnowledge.value = false
+    }
+
+    private fun handleSearchData(data: MemoryData) {
+        if (data.dataType != MemoryData.DataType.SEARCH) return
+        data.payloadAs<MemorySearchResults>()?.let {
+            _searchResults.value = it
+        }
+        _pendingSearchQuery.value = null
+    }
+
+    private fun handleEntryData(data: MemoryData) {
+        if (data.dataType != MemoryData.DataType.ENTRY) return
+        data.payloadAs<MemoryDrawer>()?.let { full ->
+            if (_detailDrawer.value?.id == full.id) {
+                // Only update to full if the drawer popup still open
+                _detailDrawer.value = full
+            }
+        }
+        _pendingEntryID.value = null
+    }
+
+    private fun handleDeleteData(data: MemoryData) {
+        if (data.dataType != MemoryData.DataType.DELETE) return
+        val result = data.payloadAs<MemoryDeleteResult>()
+        val deleted = _pendingDelete.value
+        _pendingDelete.value = null
+        if ((result?.success == true) && (deleted != null)) {
+            removeDrawerLocally(deleted)
+            closeDrawerDetail()
+            requestOverview()
+        } else {
+            _deleteError.value = result?.error ?: "Delete failed — the memory may not have been found."
+        }
+    }
+
+    private fun handlePageData(data: MemoryData) {
+        if (data.dataType != MemoryData.DataType.PAGE_ENTRIES) return
+        data.payloadAs<MemoryDrawerPage>()?.let { page ->
+            _browseTotal.value = page.total
+            _browseEntries.value = if (page.offset == 0) {
+                page.drawers
+            } else {
+                _browseEntries.value + page.drawers   // append next page
+            }
+        }
+        _pendingPage.value = false
+    }
+
     private fun getKnowledgeCellViewModels(drawers: List<MemoryDrawer>, lastViewedAt: Long): List<KnowledgeCellViewModel> {
         return drawers.mapIndexed { index, drawer ->
             KnowledgeCellViewModel(
@@ -260,17 +313,16 @@ class KnowledgeScreenViewModel : VModel {
                     showDrawerDetail(drawer)
                 },
                 onWingRoomClick = {
-                    // TODO: Navigate to wing/room browse view
+                    openRoom(drawer.wing, drawer.room)
+                    // TODO: Eventually navigate to specific result entry in wing -> room -> drawer
                 }
             ).apply {
                 isNew = ((drawer.filedAtTimestamp ?: 0L) > lastViewedAt)
             }
-        }
-            .sortedByDescending { it.drawer.filedAtTimestamp ?: 0L }
+        }.sortedByDescending { it.drawer.filedAtTimestamp ?: 0L }
     }
 
     private fun getSearchResultCellViewModels(drawers: List<MemoryDrawer>): List<KnowledgeCellViewModel> {
-        // NOTE: Search hits do not carry drawerId
         return drawers.mapIndexed { index, drawer ->
             KnowledgeCellViewModel(
                 id = index.toLong(),
@@ -279,24 +331,51 @@ class KnowledgeScreenViewModel : VModel {
                     showDrawerDetail(drawer)
                 },
                 onWingRoomClick = {
-                    // TODO: Navigate to wing/room browse view
+                    openRoom(drawer.wing, drawer.room)
+                    // TODO: Eventually navigate to specific result entry in wing -> room -> drawer
                 }
             )
         }
     }
 
-    private fun getDomainCellViewModels(wings: MemoryWingList): List<DomainCellViewModel> {
-        return wings.wings      // pre-sorted by count desc server-side
-            .take(MAX_DOMAIN_CARDS)
+    private fun getDomainCellViewModels(wings: MemoryWingList, limit: Int = 0): List<DomainCellViewModel> {
+        return wings.wings
+            .take(limit)
             .mapIndexed { index, wing ->
                 DomainCellViewModel(
                     id = index.toLong(),
                     wing = wing,
                     onSelect = {
-                        // TODO: Navigate to wing browse view (rooms within wing)
+                        openWing(wing.name)
                     }
                 )
             }
+    }
+
+    private fun getTopicCellViewModels(rooms: MemoryRoomList, wing: String): List<TopicCellViewModel> {
+        return rooms.rooms.mapIndexed { index, room ->
+            TopicCellViewModel(
+                id = index.toLong(),
+                wing = wing,
+                room = room,
+                onSelect = {
+                    openRoom(wing, room.name)
+                }
+            )
+        }
+    }
+
+    private fun getBrowseKnowledgeCellViewModels(drawers: List<MemoryDrawer>): List<KnowledgeCellViewModel> {
+        return drawers.mapIndexed { index, drawer ->
+            KnowledgeCellViewModel(
+                id = index.toLong(),
+                drawer = drawer,
+                onSelect = {
+                    showDrawerDetail(drawer)
+                },
+                onWingRoomClick = { /* Already inside this wing/room — no-op */ }
+            )
+        }
     }
 
     fun requestOverview() {
@@ -319,25 +398,69 @@ class KnowledgeScreenViewModel : VModel {
         )
     }
 
+    fun requestRoomsForWing(wing: String) {
+        val dataUUID = Uuid.random().toString()
+        _roomsRequestUUID.value = dataUUID
+        dawson.requestMemory(
+            dataUUID = dataUUID,
+            dataType = MemoryData.DataType.LIST_ROOMS,
+            query = MemoryQuery(wing = wing)
+        )
+    }
+
     fun requestSearch(query: String) {
         val trimmed = query.trim().take(MAX_SEARCH_QUERY_CHARS)
         if (trimmed.isEmpty()) return
 
         _lastSearchQuery.value = trimmed
         _searchLimit.value = DEFAULT_NUM_BATCH_RESULTS  // new query resets the window
-        fireSearch(trimmed, DEFAULT_NUM_BATCH_RESULTS)
+        sendSearchRequest(trimmed, DEFAULT_NUM_BATCH_RESULTS)
     }
 
-    fun loadMoreSearchResults() {
-        val query = _lastSearchQuery.value ?: return
-        if (_pendingSearchQuery.value != null) return
+    fun requestDeleteDrawer(drawer: MemoryDrawer) {
+        if (_pendingDelete.value != null) return
+        _deleteError.value = null
+        _pendingDelete.value = drawer
 
-        val newLimit = minOf((_searchLimit.value + DEFAULT_NUM_BATCH_RESULTS), MAX_SEARCH_RESULTS)
-        _searchLimit.value = newLimit
-        fireSearch(query, newLimit)
+        val dataUUID = Uuid.random().toString()
+        _deleteRequestUUID.value = dataUUID
+        dawson.requestMemory(
+            dataUUID = dataUUID,
+            dataType = MemoryData.DataType.DELETE,
+            query = MemoryQuery(
+                drawerID = drawer.id.takeIf { it.isNotEmpty() },
+                // No id (search hit) → server resolves via duplicate check on verbatim content
+                content = drawer.content.takeIf { drawer.id.isEmpty() }
+            )
+        )
     }
 
-    private fun fireSearch(query: String, limit: Int) {
+    private fun requestAllKnowledge(limit: Int, offset: Int = 0) {
+        val dataUUID = Uuid.random().toString()
+        _allKnowledgeRequestUUID.value = dataUUID
+        _isLoadingAllKnowledge.value = true
+        dawson.requestMemory(
+            dataUUID = dataUUID,
+            dataType = MemoryData.DataType.PAGE_ENTRIES,
+            query = MemoryQuery(limit = limit, offset = offset)
+        )
+    }
+
+    private fun requestBrowsePage(offset: Int) {
+        val wing = _selectedBrowseWing.value ?: return
+        val room = _selectedBrowseRoom.value ?: return
+        _pendingPage.value = true
+
+        val dataUUID = Uuid.random().toString()
+        _pageRequestUUID.value = dataUUID
+        dawson.requestMemory(
+            dataUUID = dataUUID,
+            dataType = MemoryData.DataType.PAGE_ENTRIES,
+            query = MemoryQuery(wing = wing, room = room, limit = BROWSE_PAGE_SIZE, offset = offset)
+        )
+    }
+
+    private fun sendSearchRequest(query: String, limit: Int) {
         val dataUUID = Uuid.random().toString()
         _searchRequestUUID.value = dataUUID
         _pendingSearchQuery.value = query
@@ -346,6 +469,15 @@ class KnowledgeScreenViewModel : VModel {
             dataType = MemoryData.DataType.SEARCH,
             query = MemoryQuery(query = query, limit = limit)
         )
+    }
+
+    fun loadMoreSearchResults() {
+        val query = _lastSearchQuery.value ?: return
+        if (_pendingSearchQuery.value != null) return
+
+        val newLimit = minOf((_searchLimit.value + DEFAULT_NUM_BATCH_RESULTS), MAX_SEARCH_RESULTS)
+        _searchLimit.value = newLimit
+        sendSearchRequest(query, newLimit)
     }
 
     fun clearSearch() {
@@ -367,19 +499,8 @@ class KnowledgeScreenViewModel : VModel {
 
     fun loadMoreKnowledge() {
         val page = _allKnowledgePage.value ?: return
-        if (_isLoadingAllKnowledge.value || page.drawers.size >= page.total) return
+        if (_isLoadingAllKnowledge.value || (page.drawers.size >= page.total)) return
         requestAllKnowledge(limit = DEFAULT_NUM_BATCH_RESULTS, offset = page.drawers.size)
-    }
-
-    private fun requestAllKnowledge(limit: Int, offset: Int = 0) {
-        val dataUUID = Uuid.random().toString()
-        _allKnowledgeRequestUUID.value = dataUUID
-        _isLoadingAllKnowledge.value = true
-        dawson.requestMemory(
-            dataUUID = dataUUID,
-            dataType = MemoryData.DataType.PAGE_ENTRIES,
-            query = MemoryQuery(limit = limit, offset = offset)
-        )
     }
 
     fun closeAllKnowledge() {
@@ -390,6 +511,31 @@ class KnowledgeScreenViewModel : VModel {
         clearSearch()
         _showAllKnowledge.value = false
         _showAllDomains.value = true
+        _selectedBrowseWing.value = null
+        _selectedBrowseRoom.value = null
+    }
+
+    fun openWing(wing: String) {
+        closeDrawerDetail()
+        clearSearch()
+        _showAllDomains.value = false
+        _selectedBrowseRoom.value = null
+        _browseEntries.value = emptyList()
+        _memoryRooms.value = null
+        _selectedBrowseWing.value = wing
+
+        requestRoomsForWing(wing)
+    }
+
+    fun openRoom(wing: String, room: String) {
+        closeDrawerDetail()
+        clearSearch()
+        _showAllDomains.value = false
+        _selectedBrowseWing.value = wing
+        _selectedBrowseRoom.value = room
+        _browseEntries.value = emptyList()
+        _browseTotal.value = 0
+        requestBrowsePage(offset = 0)
     }
 
     fun closeAllDomains() {
@@ -423,50 +569,40 @@ class KnowledgeScreenViewModel : VModel {
         _deleteError.value = null
     }
 
-    fun requestDeleteDrawer(drawer: MemoryDrawer) {
-        if (_pendingDelete.value != null) return
-        _deleteError.value = null
-        _pendingDelete.value = drawer
-
-        val dataUUID = Uuid.random().toString()
-        _deleteRequestUUID.value = dataUUID
-        dawson.requestMemory(
-            dataUUID = dataUUID,
-            dataType = MemoryData.DataType.DELETE,
-            query = MemoryQuery(
-                drawerID = drawer.id.takeIf { it.isNotEmpty() },
-                // No id (search hit) → server resolves via duplicate check on verbatim content
-                content = drawer.content.takeIf { drawer.id.isEmpty() }
-            )
-        )
-    }
-
     private fun removeDrawerLocally(drawer: MemoryDrawer) {
         _searchResults.value = _searchResults.value?.let { results ->
-            results.copy(results = results.results.filterNot {
+            val filteredResults = results.results.filterNot {
                 (it === drawer) || ((drawer.id.isNotEmpty()) && (it.id == drawer.id))
-            })
+            }
+            results.copy(results = filteredResults)
         }
         _allKnowledgePage.value = _allKnowledgePage.value?.let { page ->
-            page.copy(
-                drawers = page.drawers.filterNot {
-                    (it === drawer) || ((drawer.id.isNotEmpty()) && (it.id == drawer.id))
-                },
-                total = (page.total - 1).coerceAtLeast(0)
-            )
+            val filteredDrawers = page.drawers.filterNot {
+                (it === drawer) || ((drawer.id.isNotEmpty()) && (it.id == drawer.id))
+            }
+            page.copy(drawers = filteredDrawers, total = (page.total - 1).coerceAtLeast(0))
         }
     }
 
-    fun openWing(wing: String) {
-        // TODO: Navigate to wing browse view (rooms within wing)
+    fun loadMoreBrowseEntries() {
+        if (_pendingPage.value) return
+        requestBrowsePage(offset = _browseEntries.value.size)
     }
 
-    fun openRoom(wing: String, room: String) {
-        // TODO: Navigate to room browse view (entries within room)
+    fun closeTopicKnowledge() {
+        _selectedBrowseRoom.value = null
+        _browseEntries.value = emptyList()
+    }
+
+    fun closeTopics() {
+        _selectedBrowseWing.value = null
+        _memoryRooms.value = null
+        _showAllDomains.value = true    // back lands on All Domains
     }
 
     companion object {
         private const val MAX_DOMAIN_CARDS = 5
         private const val DEFAULT_NUM_BATCH_RESULTS = 15
+        private const val BROWSE_PAGE_SIZE = 25
     }
 }
