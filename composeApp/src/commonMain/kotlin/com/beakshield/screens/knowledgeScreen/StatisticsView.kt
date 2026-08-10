@@ -13,24 +13,33 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.Hub
+import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.backgroundColor
 import com.beakshield.borderColor
+import com.beakshield.classes.KnowledgeStatistics
 import com.beakshield.composables.BasicBox
 import com.beakshield.dawsonGold
 import com.beakshield.formatCount
@@ -41,9 +50,7 @@ import com.beakshield.textSecondaryColor
 @Composable
 fun StatisticsView(
     modifier: Modifier = Modifier,
-    totalKnowledge: Int? = 2431,
-    domains: Int? = 18,
-    lastUpdated: String = "3 minutes ago"
+    statistics: KnowledgeStatistics = KnowledgeStatistics.MockKnowledgeStatistics.mockStatistics[0]
 ) {
     val padBetween = 12
 
@@ -65,18 +72,50 @@ fun StatisticsView(
             StatisticRow(
                 icon = Icons.AutoMirrored.Outlined.ShowChart,
                 label = "Total Knowledge",
-                value = totalKnowledge?.takeIf { it > 0 }?.let { formatCount(it) } ?: "---",
+                value = statistics.totalKnowledge?.takeIf { it > 0 }?.let { formatCount(it) } ?: "---",
                 valueSuffix = "entries"
             )
             StatisticRow(
                 icon = Icons.Outlined.Hub,
                 label = "Domains",
-                value = domains?.takeIf { it > 0 }?.toString() ?: "---"
+                value = statistics.domains?.takeIf { it > 0 }?.toString() ?: "---"
+            )
+            StatisticRow(
+                icon = Icons.Outlined.AccountTree,
+                label = "Topics",
+                value = statistics.topics?.takeIf { it > 0 }?.toString() ?: "---"
+            )
+            StatisticRow(
+                icon = Icons.Outlined.Leaderboard,
+                label = "Largest Domain",
+                value = statistics.largestDomain ?: "---"
+            )
+            StatisticRow(
+                icon = Icons.AutoMirrored.Outlined.TrendingUp,
+                label = "New This Week",
+                value = statistics.newThisWeek
+            )
+            StatisticRow(
+                icon = Icons.Outlined.Book,
+                label = "Diary Entries",
+                value = statistics.diaryEntries?.takeIf { it > 0 }?.let { formatCount(it) } ?: "---"
             )
             StatisticRow(
                 icon = Icons.Outlined.Schedule,
                 label = "Last Updated",
-                value = lastUpdated
+                value = statistics.lastUpdated
+            )
+            StatisticRow(
+                icon = Icons.Outlined.Storage,
+                label = "Storage Used",
+                value = statistics.storageUsed
+            )
+            StatisticRow(
+                icon = Icons.Outlined.Shield,
+                label = "Palace Health",
+                value = statistics.healthStatus,
+                valueColor = statistics.healthColor,
+                enableSpacerLine = false
             )
         }
     }
@@ -87,7 +126,9 @@ private fun StatisticRow(
     icon: ImageVector,
     label: String,
     value: String,
-    valueSuffix: String? = null
+    valueSuffix: String? = null,
+    valueColor: Color = textColor,
+    enableSpacerLine: Boolean = true
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -95,18 +136,18 @@ private fun StatisticRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
+                .padding(vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
+                    .size(38.dp)
                     .background(backgroundColor.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
                     .border(1.dp, borderColor.copy(alpha = 0.65f), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(20.dp),
                     imageVector = icon,
                     contentDescription = null,
                     tint = dawsonGold
@@ -116,19 +157,23 @@ private fun StatisticRow(
                 modifier = Modifier.padding(start = 14.dp),
                 text = buildAnnotatedString {
                     withStyle(style = SpanStyle(textSecondaryColor, fontSize = 11.sp, fontWeight = FontWeight.Normal)) { append("$label\n") }
-                    withStyle(style = SpanStyle(textColor, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)) { append(value) }
+                    withStyle(style = SpanStyle(valueColor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)) { append(value) }
                     valueSuffix?.let {
                         withStyle(style = SpanStyle(textSecondaryColor, fontSize = 12.sp, fontWeight = FontWeight.Normal)) { append(" $it") }
                     }
                 },
-                lineHeight = 21.sp
+                lineHeight = 19.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
-        Spacer(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(borderColor.copy(alpha = 0.65f))
-        )
+        if (enableSpacerLine) {
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(borderColor.copy(alpha = 0.65f))
+            )
+        }
     }
 }

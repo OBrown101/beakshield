@@ -28,7 +28,7 @@ data class MemoryData(
         return try {
             Json.decodeFromJsonElement<T>(payload)
         } catch (e: Exception) {
-            println("AgentData payloadAs error: $e")
+            println("MemoryData payloadAs error: $e")
             null
         }
     }

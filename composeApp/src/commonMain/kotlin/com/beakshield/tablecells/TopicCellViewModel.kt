@@ -15,9 +15,6 @@ data class TopicCellViewModel(
     val entryCount: Int
         get() = room.count
 
-    // Topic cards inherit their domain's color for visual continuity while
-    // drilling down; the icon keys off the topic name itself (with the
-    // domain icon as fallback when no keyword matches).
     val topicStyle: WingStyle.Style
         get() {
             val domainStyle = WingStyle.styleFor(wing)

@@ -34,3 +34,11 @@ fun formatCount(count: Int): String {
         .joinToString(",")
         .reversed()
 }
+
+fun formatBytes(bytes: Long): String {
+    return when {
+        (bytes >= 1_073_741_824L) -> "${((bytes / 1_073_741_824.0) * 10).toLong() / 10.0} GB"
+        (bytes >= 1_048_576L) -> "${bytes / 1_048_576L} MB"
+        else -> "${bytes / 1024L} KB"
+    }
+}

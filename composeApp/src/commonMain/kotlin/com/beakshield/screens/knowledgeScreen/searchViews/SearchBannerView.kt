@@ -89,7 +89,7 @@ fun SearchBannerView(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 40.dp, vertical = 45.dp),
+                    .padding(horizontal = 35.dp, vertical = 30.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {

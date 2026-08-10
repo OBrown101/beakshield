@@ -5,7 +5,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -58,6 +57,9 @@ fun ScreenBanner(
     val canLoadMoreKnowledge by knowledgeScreenViewModel.canLoadMoreKnowledge.collectAsState()
     val isLoadingAllKnowledge by knowledgeScreenViewModel.isLoadingAllKnowledge.collectAsState()
 
+    // TODO: I will either connect to saved list or just hardcode to common list
+    val popularSearches = listOf("USBManager", "Kotlin Coroutines", "Compose Navigation", "Email Tone")
+
     val searchResults by knowledgeScreenViewModel.searchResults.collectAsState()
     val canLoadMoreResults by knowledgeScreenViewModel.canLoadMoreResults.collectAsState()
     val isSearching by knowledgeScreenViewModel.isSearching.collectAsState()
@@ -107,7 +109,10 @@ fun ScreenBanner(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(if (searchResults != null || showAllKnowledge) Modifier else {
+                    .then(
+                        if ((searchResults != null) || showAllKnowledge || (selectedBrowseWing != null)) {
+                            Modifier
+                        } else {
                             Modifier
                                 .verticalScroll(scrollState)
                                 .beakshieldScrollbar(scrollState)
@@ -115,109 +120,104 @@ fun ScreenBanner(
                     )
             ) {
                 Row(
-                    modifier = Modifier.height(IntrinsicSize.Min),
+                    modifier = Modifier,
                     horizontalArrangement = Arrangement.spacedBy(padBetween.dp)
                 ) {
-                    SearchBannerView(
-                        modifier = Modifier.weight(1f),
-                        query = lastSearchQuery,
-                        popularSearches = listOf(
-                            "USBManager",
-                            "Kotlin Coroutines",
-                            "Compose Navigation",
-                            "Email Tone"
-                        ), // TODO: I will either connect to saved list or just hardcode to common list
-                        isSearching = isSearching,
-                        searchActive = (searchResults != null),
-                        onSearch = {
-                            knowledgeScreenViewModel.requestSearch(it)
-                        },
-                        onClearSearch = {
-                            knowledgeScreenViewModel.clearSearch()
-                        },
-                        onPopularSearchClick = {
-                            knowledgeScreenViewModel.requestSearch(it)
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        SearchBannerView(
+                            modifier = Modifier.height(310.dp),
+                            query = lastSearchQuery,
+                            popularSearches = popularSearches,
+                            isSearching = isSearching,
+                            searchActive = (searchResults != null),
+                            onSearch = {
+                                knowledgeScreenViewModel.requestSearch(it)
+                            },
+                            onClearSearch = {
+                                knowledgeScreenViewModel.clearSearch()
+                            },
+                            onPopularSearchClick = {
+                                knowledgeScreenViewModel.requestSearch(it)
+                            }
+                        )
+                        when {
+                            (searchResults != null) -> {
+                                SearchResultsView(
+                                    modifier = Modifier
+                                        .padding(top = padBetween.dp)
+                                        .weight(1f),
+                                    query = searchResults?.query ?: "",
+                                    searchResultCellViewModels = searchResultCellViewModels,
+                                    canLoadMore = canLoadMoreResults,
+                                    isLoadingMore = isSearching,
+                                    onLoadMore = { knowledgeScreenViewModel.loadMoreSearchResults() },
+                                    onClearSearch = { knowledgeScreenViewModel.clearSearch() }
+                                )
+                            }
+                            showAllKnowledge -> {
+                                AllKnowledgeView(
+                                    modifier = Modifier
+                                        .padding(top = padBetween.dp),
+                                    knowledgeCellViewModels = allKnowledgeCellViewModels,
+                                    totalKnowledge = allKnowledgeTotal,
+                                    canLoadMore = canLoadMoreKnowledge,
+                                    isLoadingMore = isLoadingAllKnowledge,
+                                    onLoadMore = { knowledgeScreenViewModel.loadMoreKnowledge() },
+                                    onClose = { knowledgeScreenViewModel.closeAllKnowledge() }
+                                )
+                            }
+                            (selectedBrowseRoom != null) -> {
+                                TopicKnowledgeView(
+                                    modifier = Modifier.padding(top = padBetween.dp),
+                                    wing = selectedBrowseWing ?: "",
+                                    room = selectedBrowseRoom ?: "",
+                                    totalEntries = browseTotal,
+                                    knowledgeCellViewModels = browseKnowledgeCellViewModels,
+                                    canLoadMore = canLoadMoreBrowse,
+                                    isLoadingMore = isLoadingBrowsePage,
+                                    onLoadMore = { knowledgeScreenViewModel.loadMoreBrowseEntries() },
+                                    onBack = { knowledgeScreenViewModel.closeTopicKnowledge() }
+                                )
+                            }
+                            (selectedBrowseWing != null) -> {
+                                TopicsView(
+                                    modifier = Modifier.padding(top = padBetween.dp),
+                                    wing = selectedBrowseWing ?: "",
+                                    topicCellViewModels = topicCellViewModels,
+                                    onBack = { knowledgeScreenViewModel.closeTopics() }
+                                )
+                            }
+                            showAllDomains -> {
+                                DomainsView(
+                                    modifier = Modifier.padding(top = padBetween.dp),
+                                    domainCellViewModels = allDomainCellViewModels,
+                                    onClose = { knowledgeScreenViewModel.closeAllDomains() }
+                                )
+                            }
+                            else -> {
+                                RecentKnowledgeView(
+                                    modifier = Modifier
+                                        .padding(top = padBetween.dp)
+                                        .then(if (knowledgeCellViewModels.isEmpty()) Modifier else Modifier.height(420.dp)),
+                                    knowledgeCellViewModels = knowledgeCellViewModels,
+                                    onViewAll = { knowledgeScreenViewModel.openAllKnowledge() }
+                                )
+                                if (!showAllDomains) {
+                                    DomainsOverviewView(
+                                        modifier = Modifier.padding(top = padBetween.dp),
+                                        domainCellViewModels = domainCellViewModels,
+                                        onViewAllDomains = { knowledgeScreenViewModel.openAllDomains() }
+                                    )
+                                }
+                            }
                         }
-                    )
+                    }
                     StatisticsView(
                         modifier = Modifier.width(250.dp),
-                        totalKnowledge = knowledgeStatistics.totalKnowledge ?: 0,
-                        domains = knowledgeStatistics.domains ?: 0,
-                        lastUpdated = knowledgeStatistics.lastUpdated
+                        statistics = knowledgeStatistics
                     )
-                }
-                when {
-                    (searchResults != null) -> {
-                        SearchResultsView(
-                            modifier = Modifier
-                                .padding(top = padBetween.dp)
-                                .weight(1f),
-                            query = searchResults?.query ?: "",
-                            searchResultCellViewModels = searchResultCellViewModels,
-                            canLoadMore = canLoadMoreResults,
-                            isLoadingMore = isSearching,
-                            onLoadMore = { knowledgeScreenViewModel.loadMoreSearchResults() },
-                            onClearSearch = { knowledgeScreenViewModel.clearSearch() }
-                        )
-                    }
-                    showAllKnowledge -> {
-                        AllKnowledgeView(
-                            modifier = Modifier
-                                .padding(top = padBetween.dp)
-                                .weight(1f),
-                            knowledgeCellViewModels = allKnowledgeCellViewModels,
-                            totalKnowledge = allKnowledgeTotal,
-                            canLoadMore = canLoadMoreKnowledge,
-                            isLoadingMore = isLoadingAllKnowledge,
-                            onLoadMore = { knowledgeScreenViewModel.loadMoreKnowledge() },
-                            onClose = { knowledgeScreenViewModel.closeAllKnowledge() }
-                        )
-                    }
-                    (selectedBrowseRoom != null) -> {
-                        TopicKnowledgeView(
-                            modifier = Modifier.padding(top = padBetween.dp).weight(1f),
-                            wing = selectedBrowseWing ?: "",
-                            room = selectedBrowseRoom ?: "",
-                            totalEntries = browseTotal,
-                            knowledgeCellViewModels = browseKnowledgeCellViewModels,
-                            canLoadMore = canLoadMoreBrowse,
-                            isLoadingMore = isLoadingBrowsePage,
-                            onLoadMore = { knowledgeScreenViewModel.loadMoreBrowseEntries() },
-                            onBack = { knowledgeScreenViewModel.closeTopicKnowledge() }
-                        )
-                    }
-                    (selectedBrowseWing != null) -> {
-                        TopicsView(
-                            modifier = Modifier.padding(top = padBetween.dp).weight(1f),
-                            wing = selectedBrowseWing ?: "",
-                            topicCellViewModels = topicCellViewModels,
-                            onBack = { knowledgeScreenViewModel.closeTopics() }
-                        )
-                    }
-                    showAllDomains -> {
-                        DomainsView(
-                            modifier = Modifier
-                                .padding(top = padBetween.dp),
-                            domainCellViewModels = allDomainCellViewModels,
-                            onClose = { knowledgeScreenViewModel.closeAllDomains() }
-                        )
-                    }
-                    else -> {
-                        RecentKnowledgeView(
-                            modifier = Modifier
-                                .padding(top = padBetween.dp)
-                                .then(if (knowledgeCellViewModels.isEmpty()) Modifier else Modifier.height(420.dp)),
-                            knowledgeCellViewModels = knowledgeCellViewModels,
-                            onViewAll = { knowledgeScreenViewModel.openAllKnowledge() }
-                        )
-                        if (!showAllDomains) {
-                            DomainsOverviewView(
-                                modifier = Modifier.padding(top = padBetween.dp),
-                                domainCellViewModels = domainCellViewModels,
-                                onViewAllDomains = { knowledgeScreenViewModel.openAllDomains() }
-                            )
-                        }
-                    }
                 }
             }
         }

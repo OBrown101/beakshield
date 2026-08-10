@@ -142,7 +142,7 @@ fun DomainCard(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Normal,
                 textAlign = TextAlign.Center,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(

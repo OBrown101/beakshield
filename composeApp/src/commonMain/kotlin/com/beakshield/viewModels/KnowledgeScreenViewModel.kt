@@ -1,8 +1,12 @@
 package com.beakshield.viewModels
 
 import com.beakshield.BeakShieldApp.dawson
+import com.beakshield.classes.KnowledgeStatistics
+import com.beakshield.formatBytes
+import com.beakshield.formatCount
 import com.beakshield.memory.Memory.MAX_SEARCH_QUERY_CHARS
 import com.beakshield.memory.Memory.MAX_SEARCH_RESULTS
+import com.beakshield.memory.WingStyle
 import com.beakshield.tablecells.DomainCellViewModel
 import com.beakshield.tablecells.KnowledgeCellViewModel
 import com.beakshield.tablecells.TopicCellViewModel
@@ -29,6 +33,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -164,12 +171,8 @@ class KnowledgeScreenViewModel : VModel {
         }.stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     val knowledgeStatistics: StateFlow<KnowledgeStatistics> =
-        combine(_memoryOverview, knowledgeCellViewModels) { overview, cells ->
-            KnowledgeStatistics(
-                totalKnowledge = overview?.status?.totalDrawers,
-                domains = overview?.status?.wings,
-                lastUpdated = cells.firstOrNull()?.drawer?.filedAtFormattedRelative ?: "---"
-            )
+        combine(_memoryOverview, knowledgeCellViewModels, _memoryWings) { overview, cells, wings ->
+            getKnowledgeStatistics(overview, cells, wings)
         }.stateIn(scope, SharingStarted.Eagerly, KnowledgeStatistics())
 
     init {
@@ -204,12 +207,6 @@ class KnowledgeScreenViewModel : VModel {
 
         startMemoryTimer()
     }
-
-    data class KnowledgeStatistics(
-        val totalKnowledge: Int? = null,
-        val domains: Int? = null,
-        val lastUpdated: String = "---"
-    )
 
     private fun startMemoryTimer() {
         if (memoryTimerJob != null) return
@@ -304,6 +301,38 @@ class KnowledgeScreenViewModel : VModel {
         _pendingPage.value = false
     }
 
+    private fun getKnowledgeStatistics(
+        overview: MemoryOverview?,
+        knowledgeCells: List<KnowledgeCellViewModel>,
+        wings: MemoryWingList?
+    ): KnowledgeStatistics {
+        val weekAgoMillis = Clock.System.now()
+            .minus(7, DateTimeUnit.DAY, TimeZone.currentSystemDefault())
+            .toEpochMilliseconds()
+
+        val newCount = knowledgeCells.count { (it.drawer.filedAtTimestamp ?: 0L) >= weekAgoMillis }
+        val largestDomain = wings?.wings?.firstOrNull()?.let {
+            "${WingStyle.displayName(it.name)} \u00B7 ${formatCount(it.count)}"
+        }
+        val newThisWeek = when {
+            knowledgeCells.isEmpty() -> "---"
+            (newCount == knowledgeCells.size) -> "$newCount+"
+            else -> newCount.toString()
+        }
+
+        return KnowledgeStatistics(
+            totalKnowledge = overview?.status?.totalDrawers,
+            domains = overview?.status?.wings,
+            topics = overview?.status?.rooms,
+            largestDomain = largestDomain,
+            newThisWeek = newThisWeek,  // Recents capped at overview limit — full window means "at least"
+            diaryEntries = overview?.status?.diaryEntries,
+            lastUpdated = knowledgeCells.firstOrNull()?.drawer?.filedAtFormattedRelative ?: "---",
+            storageUsed = overview?.storageBytes?.let { formatBytes(it) } ?: "---",
+            healthy = overview?.status?.healthy
+        )
+    }
+
     private fun getKnowledgeCellViewModels(drawers: List<MemoryDrawer>, lastViewedAt: Long): List<KnowledgeCellViewModel> {
         return drawers.mapIndexed { index, drawer ->
             KnowledgeCellViewModel(
@@ -338,7 +367,7 @@ class KnowledgeScreenViewModel : VModel {
         }
     }
 
-    private fun getDomainCellViewModels(wings: MemoryWingList, limit: Int = 0): List<DomainCellViewModel> {
+    private fun getDomainCellViewModels(wings: MemoryWingList, limit: Int = Int.MAX_VALUE): List<DomainCellViewModel> {
         return wings.wings
             .take(limit)
             .mapIndexed { index, wing ->
