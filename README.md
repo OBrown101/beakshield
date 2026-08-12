@@ -106,7 +106,7 @@ Users will be able to browse, search, inspect, edit, and remove memories while u
 
 ---
 
-## 👑 Kingdom Management *[Planned]*
+## 👑 Kingdom Management *[In-Progress]*
 
 As DAWSON evolves into a persistent orchestrator, Beakshield will become the administrative center of the kingdom.
 
@@ -122,7 +122,7 @@ Planned management features include:
 
 ---
 
-## 📈 Visibility & Control *[Planned]*
+## 📈 Visibility & Control *[In-Progress]*
 
 As DAWSON grows beyond individual conversations, users need clear visibility into what their AI ecosystem is doing.
 
@@ -147,6 +147,7 @@ The objective is to provide an interface that feels approachable for everyday us
 - Secure DAWSON connectivity
 - Multi-chat interface
 - Dedicated Squirebot conversations
+- Knowledge browser
 - Provider management
 - OpenAI support
 - Anthropic support
@@ -167,7 +168,6 @@ The objective is to provide an interface that feels approachable for everyday us
 ## 📅 Planned
 
 - DAWSON dashboard
-- Knowledge browser
 - Royal Decree management
 - Skills library
 - User profiles
@@ -185,7 +185,7 @@ Beakshield aims to make DAWSON approachable without hiding how it works.
 
 The long-term vision is a companion application that gives users complete visibility into their AI ecosystem while remaining clean, intuitive, and enjoyable to use.
 
-Just as importantly, Beakshield is intended to remain approachable for engineers and developers who want to contribute, extend, and experiment with the platform. Built with Kotlin Multiplatform, it enables new features and improvements to be shared across supported platforms with minimal platform-specific effort.
+Just as importantly, Beakshield is intended to remain approachable for engineers and developers who want to extend and experiment with the platform to fit their needs. Built with Kotlin Multiplatform, it enables new features and improvements to be shared across supported platforms with minimal platform-specific effort.
 
 Whether you're simply chatting with an AI assistant or managing an entire kingdom of collaborating agents, Beakshield is intended to be the place where it all comes together.
 
