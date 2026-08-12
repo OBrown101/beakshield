@@ -188,3 +188,24 @@ The long-term vision is a companion application that gives users complete visibi
 Just as importantly, Beakshield is intended to remain approachable for engineers and developers who want to contribute, extend, and experiment with the platform. Built with Kotlin Multiplatform, it enables new features and improvements to be shared across supported platforms with minimal platform-specific effort.
 
 Whether you're simply chatting with an AI assistant or managing an entire kingdom of collaborating agents, Beakshield is intended to be the place where it all comes together.
+
+---
+
+# License
+
+Beakshield is **source-available** under the
+[Functional Source License 1.1](LICENSE) (FSL-1.1-ALv2):
+
+- **You can** read all of it, build it yourself, modify it for your own
+  use, and use it for anything except offering a competing product.
+- **You can't** ship a substitute for Beakshield based on this code.
+- **It opens fully over time**: each release automatically converts to
+  Apache-2.0 two years after its publication.
+
+Official desktop builds are free. Official (future) mobile builds will be paid
+and fund continued development. The brand assets (names, mascot, icons)
+are [proprietary](LICENSE-ASSETS.md).
+
+The [DAWSON server](https://github.com/OBrown101/dawson-server) that
+Beakshield connects to is fully open source under AGPL-3.0 — the
+auditability promise lives where host access lives.
