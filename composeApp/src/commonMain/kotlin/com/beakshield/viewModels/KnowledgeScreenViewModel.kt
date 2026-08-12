@@ -1,10 +1,10 @@
 package com.beakshield.viewModels
 
 import com.beakshield.BeakShieldApp.dawson
-import com.beakshield.memory.KnowledgeStatistics
+import com.beakshield.classes.DataStyle
 import com.beakshield.formatBytes
 import com.beakshield.formatCount
-import com.beakshield.classes.DataStyle
+import com.beakshield.memory.KnowledgeStatistics
 import com.beakshield.memory.Memory.MAX_SEARCH_QUERY_CHARS
 import com.beakshield.memory.Memory.MAX_SEARCH_RESULTS
 import com.beakshield.tablecells.DomainCellViewModel
@@ -76,7 +76,11 @@ class KnowledgeScreenViewModel : VModel {
     private val _lastKnowledgeViewedAt = MutableStateFlow(0L)   // TODO: Persist between sessions
     private val _memoryOverview = MutableStateFlow<MemoryOverview?>(null)
     val memoryOverview = _memoryOverview.asStateFlow()
+    private val _isLoadingOverview = MutableStateFlow(false)
+    val isLoadingOverview = _isLoadingOverview.asStateFlow()
     private val _memoryWings = MutableStateFlow<MemoryWingList?>(null)
+    private val _isLoadingDomains = MutableStateFlow(false)
+    val isLoadingDomains = _isLoadingDomains.asStateFlow()
 
     // BROWSING WINGS/ROOMS ENTRIES
     private val _selectedBrowseWing = MutableStateFlow<String?>(null)
@@ -85,6 +89,8 @@ class KnowledgeScreenViewModel : VModel {
     val selectedBrowseRoom = _selectedBrowseRoom.asStateFlow()
 
     private val _memoryRooms = MutableStateFlow<MemoryRoomList?>(null)
+    private val _isLoadingTopics = MutableStateFlow(false)
+    val isLoadingTopics = _isLoadingTopics.asStateFlow()
     private val _browseEntries = MutableStateFlow<List<MemoryDrawer>>(emptyList())
     private val _browseTotal = MutableStateFlow(0)
     private val _pendingPage = MutableStateFlow(false)
@@ -177,31 +183,15 @@ class KnowledgeScreenViewModel : VModel {
 
     init {
         scope.launch {
-            dawson.memoryResponses.collect { responses ->
-                _overviewRequestUUID.value?.let { responses[it] }?.let {
-                    handleOverviewData(it)  // Overview stats
-                }
-                _wingsRequestUUID.value?.let { responses[it] }?.let {
-                    handleListWingsData(it) // All wings
-                }
-                _roomsRequestUUID.value?.let { responses[it] }?.let {
-                    handleListRoomsData(it) // All rooms
-                }
-                _allKnowledgeRequestUUID.value?.let { responses[it] }?.let {
-                    handleAllKnowledgeData(it) // All drawers (paginated)
-                }
-                _searchRequestUUID.value?.let { responses[it] }?.let {
-                    handleSearchData(it)    // Search results
-                }
-                _entryRequestUUID.value?.let { responses[it] }?.let {
-                    handleEntryData(it)     // Specific drawer entry
-                }
-                _deleteRequestUUID.value?.let { responses[it] }?.let {
-                    handleDeleteData(it)    // Drawer delete
-                }
-                _pageRequestUUID.value?.let { responses[it] }?.let {
-                    handlePageData(it)      // Specific paginated drawers request
-                }
+            dawson.memoryResponses.collect {
+                consume(_overviewRequestUUID) { handleOverviewData(it) } // Overview stats
+                consume(_wingsRequestUUID) { handleListWingsData(it) }   // All wings
+                consume(_roomsRequestUUID) { handleListRoomsData(it) }   // All rooms
+                consume(_allKnowledgeRequestUUID) { handleAllKnowledgeData(it) }  // All drawers (paginated)
+                consume(_searchRequestUUID) { handleSearchData(it) }     // Search results
+                consume(_entryRequestUUID) { handleEntryData(it) }       // Specific drawer entry
+                consume(_deleteRequestUUID) { handleDeleteData(it) }     // Drawer delete
+                consume(_pageRequestUUID) { handlePageData(it) }         // Specific paginated drawers request
             }
         }
 
@@ -221,6 +211,7 @@ class KnowledgeScreenViewModel : VModel {
 
     private fun handleOverviewData(data: MemoryData) {
         if (data.dataType != MemoryData.DataType.OVERVIEW) return
+        _isLoadingOverview.value = false
         data.payloadAs<MemoryOverview>()?.let {
             _memoryOverview.value = it
         }
@@ -231,6 +222,7 @@ class KnowledgeScreenViewModel : VModel {
         data.payloadAs<MemoryWingList>()?.let {
             _memoryWings.value = it
         }
+        _isLoadingDomains.value = false
     }
 
     private fun handleListRoomsData(data: MemoryData) {
@@ -238,6 +230,7 @@ class KnowledgeScreenViewModel : VModel {
         data.payloadAs<MemoryRoomList>()?.let {
             _memoryRooms.value = it
         }
+        _isLoadingTopics.value = false
     }
 
     private fun handleAllKnowledgeData(data: MemoryData) {
@@ -407,9 +400,12 @@ class KnowledgeScreenViewModel : VModel {
         }
     }
 
-    fun requestOverview() {
+    fun requestOverview(showLoading: Boolean = false) {
         val dataUUID = Uuid.random().toString()
         _overviewRequestUUID.value = dataUUID
+        if (showLoading) {
+            _isLoadingOverview.value = true
+        }
         dawson.requestMemory(
             dataUUID = dataUUID,
             dataType = MemoryData.DataType.OVERVIEW,
@@ -417,9 +413,10 @@ class KnowledgeScreenViewModel : VModel {
         )
     }
 
-    fun requestWings() {
+    fun requestWings(showLoading: Boolean = false) {
         val dataUUID = Uuid.random().toString()
         _wingsRequestUUID.value = dataUUID
+        if (showLoading) _isLoadingDomains.value = true
         dawson.requestMemory(
             dataUUID = dataUUID,
             dataType = MemoryData.DataType.LIST_WINGS,
@@ -430,6 +427,7 @@ class KnowledgeScreenViewModel : VModel {
     fun requestRoomsForWing(wing: String) {
         val dataUUID = Uuid.random().toString()
         _roomsRequestUUID.value = dataUUID
+        _isLoadingTopics.value = true
         dawson.requestMemory(
             dataUUID = dataUUID,
             dataType = MemoryData.DataType.LIST_ROOMS,
@@ -540,6 +538,8 @@ class KnowledgeScreenViewModel : VModel {
         clearSearch()
         _showAllKnowledge.value = false
         _showAllDomains.value = true
+        _isLoadingDomains.value = true
+        requestWings(showLoading = true)
         _selectedBrowseWing.value = null
         _selectedBrowseRoom.value = null
     }
@@ -641,6 +641,16 @@ class KnowledgeScreenViewModel : VModel {
         _selectedBrowseWing.value = null
         _memoryRooms.value = null
         _showAllDomains.value = true    // back lands on All Domains
+    }
+
+    private inline fun consume(
+        uuidFlow: MutableStateFlow<String?>,
+        handler: (MemoryData) -> Unit
+    ) {
+        val uuid = uuidFlow.value ?: return
+        val data = dawson.takeMemoryResponse(uuid) ?: return
+        uuidFlow.value = null
+        handler(data)
     }
 
     companion object {

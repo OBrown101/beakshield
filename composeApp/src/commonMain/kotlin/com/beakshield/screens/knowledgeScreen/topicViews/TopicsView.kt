@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.beakshield.dawsonGold
 import com.beakshield.formatCount
 import com.beakshield.classes.DataStyle
+import com.beakshield.screens.knowledgeScreen.KnowledgeLoadingContent
 import com.beakshield.screens.knowledgeScreen.MemorySummaryCard
 import com.beakshield.tablecells.TopicCellViewModel
 import com.beakshield.textSecondaryColor
@@ -38,6 +39,7 @@ fun TopicsView(
     modifier: Modifier = Modifier,
     wing: String = "wing_android.development",
     topicCellViewModels: List<TopicCellViewModel> = TopicCellViewModel.MockTopicCVM.mockTopicCVMs,
+    isLoading: Boolean = false,
     onBack: () -> Unit = {}
 ) {
     val padBetween = 12
@@ -91,10 +93,16 @@ fun TopicsView(
                 )
             }
         }
-        LazyVerticalGrid(
+        KnowledgeLoadingContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
+            isLoading = isLoading,
+            isEmpty = topicCellViewModels.isEmpty(),
+            emptyMessage = "No topics found."
+        ) { contentModifier ->
+            LazyVerticalGrid(
+                modifier = contentModifier,
             columns = GridCells.Adaptive(minSize = 170.dp),
             horizontalArrangement = Arrangement.spacedBy(padBetween.dp),
             verticalArrangement = Arrangement.spacedBy(padBetween.dp)
@@ -107,6 +115,7 @@ fun TopicsView(
                     subtitle = "knowledge entries",
                     onClick = { cellViewModel.onSelect() }
                 )
+            }
             }
         }
     }

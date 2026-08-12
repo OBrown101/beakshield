@@ -69,6 +69,8 @@ fun ScreenBanner(
     val showAllDomains by knowledgeScreenViewModel.showAllDomains.collectAsState()
     val allDomainCellViewModels by knowledgeScreenViewModel.allDomainCellViewModels.collectAsState()
     val domainCellViewModels by knowledgeScreenViewModel.domainCellViewModels.collectAsState()
+    val isLoadingDomains by knowledgeScreenViewModel.isLoadingDomains.collectAsState()
+    val isLoadingTopics by knowledgeScreenViewModel.isLoadingTopics.collectAsState()
 
     val detailDrawer by knowledgeScreenViewModel.detailDrawer.collectAsState()
     val isLoadingFullDrawer by knowledgeScreenViewModel.isLoadingFullDrawer.collectAsState()
@@ -186,6 +188,7 @@ fun ScreenBanner(
                                     modifier = Modifier.padding(top = padBetween.dp),
                                     wing = selectedBrowseWing ?: "",
                                     topicCellViewModels = topicCellViewModels,
+                                     isLoading = isLoadingTopics,
                                     onBack = { knowledgeScreenViewModel.closeTopics() }
                                 )
                             }
@@ -193,6 +196,7 @@ fun ScreenBanner(
                                 DomainsView(
                                     modifier = Modifier.padding(top = padBetween.dp),
                                     domainCellViewModels = allDomainCellViewModels,
+                                    isLoading = isLoadingDomains,
                                     onClose = { knowledgeScreenViewModel.closeAllDomains() }
                                 )
                             }

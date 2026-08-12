@@ -90,45 +90,52 @@ fun AllKnowledgeView(
                 )
             }
         }
-        TableView(
+        KnowledgeLoadingContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            cellViewModels = knowledgeCellViewModels,
-            cellHeight = { 70.dp },
-            emptyTableText = "No knowledge entries found.",
-            emptyTableTextColor = textSecondaryColor,
-            enableOnClick = true,
-            enableSwipeLeft = false,
-            borderColor = androidx.compose.ui.graphics.Color.Transparent,
-            cellSpacing = padBetween,
-            cellOnClick = { it.onSelect() }
-        ) { cellModifier, cell ->
-            KnowledgeTableCell(
-                modifier = cellModifier,
-                cellViewModel = cell
-            )
-        }
-        if (canLoadMore) {
-            BasicRoundedBtn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = padBetween.dp)
-                    .height(40.dp),
-                text = if (isLoadingMore) "Loading..." else "Load More Knowledge",
-                borderRadius = 8,
-                textStyle = TextStyle(
-                    fontFamily = FontFamily.SansSerif,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
+            isLoading = isLoadingMore && knowledgeCellViewModels.isEmpty(),
+            isEmpty = knowledgeCellViewModels.isEmpty(),
+            emptyMessage = "No knowledge entries found."
+        ) { tableModifier ->
+            TableView(
+                modifier = tableModifier,
+                cellViewModels = knowledgeCellViewModels,
+                cellHeight = { 70.dp },
+                emptyTableText = "",
+                emptyTableTextColor = textSecondaryColor,
+                enableOnClick = true,
+                enableSwipeLeft = false,
+                borderColor = androidx.compose.ui.graphics.Color.Transparent,
+                cellSpacing = padBetween,
+                cellOnClick = { it.onSelect() }
+            ) { cellModifier, cell ->
+                KnowledgeTableCell(
+                    modifier = cellModifier,
+                    cellViewModel = cell
+                )
+            }
+            if (canLoadMore) {
+                BasicRoundedBtn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = padBetween.dp)
+                        .height(40.dp),
+                    text = if (isLoadingMore) "Loading..." else "Load More Knowledge",
+                    borderRadius = 8,
+                    textStyle = TextStyle(
+                        fontFamily = FontFamily.SansSerif,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = dawsonGold,
+                        textAlign = TextAlign.Center
+                    ),
                     color = dawsonGold,
-                    textAlign = TextAlign.Center
-                ),
-                color = dawsonGold,
-                borderColor = borderColor,
-                bg = cardColor,
-                onClick = { if (!isLoadingMore) onLoadMore() }
-            )
+                    borderColor = borderColor,
+                    bg = cardColor,
+                    onClick = { if (!isLoadingMore) onLoadMore() }
+                )
+            }
         }
     }
 }

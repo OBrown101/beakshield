@@ -121,6 +121,10 @@ class Dawson {
                     startSyncTimer()
                 }
                 prevConn = (state.state == ServerConnState.ConnState.CONNECTED)
+                if (state.state == ServerConnState.ConnState.DISCONNECTED) {
+                    // Do cleanup in here for data only should exist if connected
+                    _memoryResponses.value = emptyMap()
+                }
             }
         }
 
@@ -765,6 +769,15 @@ class Dawson {
         fetchUsers()
         fetchProviders()
         fetchChats()
+    }
+
+    fun takeMemoryResponse(dataUUID: String): MemoryData? {
+        var taken: MemoryData? = null
+        _memoryResponses.update { map ->
+            taken = map[dataUUID]
+            if (taken == null) map else (map - dataUUID)
+        }
+        return taken
     }
 
     companion object {

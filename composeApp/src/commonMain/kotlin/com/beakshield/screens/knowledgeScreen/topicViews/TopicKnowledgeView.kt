@@ -27,11 +27,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.borderColor
 import com.beakshield.cardColor
+import com.beakshield.classes.DataStyle
 import com.beakshield.composables.BasicRoundedBtn
 import com.beakshield.composables.TableView
 import com.beakshield.dawsonGold
 import com.beakshield.formatCount
-import com.beakshield.classes.DataStyle
+import com.beakshield.screens.knowledgeScreen.KnowledgeLoadingContent
 import com.beakshield.screens.knowledgeScreen.KnowledgeTableCell
 import com.beakshield.tablecells.KnowledgeCellViewModel
 import com.beakshield.textSecondaryColor
@@ -100,12 +101,19 @@ fun TopicKnowledgeView(
                 )
             }
         }
-        TopicKnowledgeTableView(
+        KnowledgeLoadingContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            knowledgeCellViewModels = knowledgeCellViewModels
-        )
+            isLoading = isLoadingMore && knowledgeCellViewModels.isEmpty(),
+            isEmpty = knowledgeCellViewModels.isEmpty(),
+            emptyMessage = "No entries in this topic yet."
+        ) { tableModifier ->
+            TopicKnowledgeTableView(
+                modifier = tableModifier,
+                knowledgeCellViewModels = knowledgeCellViewModels
+            )
+        }
         if (canLoadMore) {
             BasicRoundedBtn(
                 modifier = Modifier
@@ -143,7 +151,7 @@ private fun TopicKnowledgeTableView(
         modifier = modifier,
         cellViewModels = knowledgeCellViewModels,
         cellHeight = { 70.dp },
-        emptyTableText = "No entries in this topic yet.",
+        emptyTableText = "",
         emptyTableTextColor = textSecondaryColor,
         enableOnClick = true,
         enableSwipeLeft = false,

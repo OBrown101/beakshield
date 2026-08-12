@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.dawsonGold
 import com.beakshield.formatCount
+import com.beakshield.screens.knowledgeScreen.KnowledgeLoadingContent
 import com.beakshield.screens.knowledgeScreen.MemorySummaryCard
 import com.beakshield.tablecells.DomainCellViewModel
 import com.beakshield.textSecondaryColor
@@ -35,6 +36,7 @@ import com.beakshield.textSecondaryColor
 fun DomainsView(
     modifier: Modifier = Modifier,
     domainCellViewModels: List<DomainCellViewModel> = DomainCellViewModel.MockDomainCVM.mockDomainCVMs,
+    isLoading: Boolean = false,
     onClose: () -> Unit = {}
 ) {
     val padBetween = 12
