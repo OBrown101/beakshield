@@ -1,6 +1,6 @@
 package com.beakshield.tablecells
 
-import com.beakshield.memory.WingStyle
+import com.beakshield.classes.DataStyle
 import com.beakshield.websocket.memory.MemoryCount
 
 data class DomainCellViewModel(
@@ -9,13 +9,13 @@ data class DomainCellViewModel(
     val onSelect: () -> Unit = {}
 ) {
     val displayName: String
-        get() = WingStyle.displayName(wing.name)
+        get() = DataStyle.displayName(wing.name)
 
     val entryCount: Int
         get() = wing.count
 
-    val wingStyle: WingStyle.Style
-        get() = WingStyle.styleFor(wing.name)
+    val wingStyle: DataStyle.Style
+        get() = DataStyle.styleFor(wing.name)
 
     object MockDomainCVM {
         val mockDomainCVMs = listOf(

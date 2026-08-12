@@ -1,4 +1,4 @@
-package com.beakshield.classes
+package com.beakshield.memory
 
 import androidx.compose.ui.graphics.Color
 import com.beakshield.dangerColor

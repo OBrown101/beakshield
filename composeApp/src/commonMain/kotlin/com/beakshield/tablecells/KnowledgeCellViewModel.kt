@@ -1,7 +1,7 @@
 package com.beakshield.tablecells
 
 import com.beakshield.composables.TableCellViewModel
-import com.beakshield.memory.WingStyle
+import com.beakshield.classes.DataStyle
 import com.beakshield.websocket.memory.MemoryDrawer
 
 data class KnowledgeCellViewModel(
@@ -15,10 +15,10 @@ data class KnowledgeCellViewModel(
     override var swipeState: TableCellViewModel.SwipeAnchor = TableCellViewModel.SwipeAnchor.Start
 
     val wingRoomLabel: String
-        get() = "${WingStyle.displayName(drawer.wing)} \u203A ${drawer.room}"
+        get() = "${DataStyle.displayName(drawer.wing)} \u203A ${drawer.room}"
 
-    val wingStyle: WingStyle.Style
-        get() = WingStyle.styleFor(drawer.wing)
+    val wingStyle: DataStyle.Style
+        get() = DataStyle.styleFor(drawer.wing)
 
     object MockKnowledgeCVM {
         val mockKnowledgeCVMs =

@@ -1,5 +1,6 @@
 package com.beakshield.screens.knowledgeScreen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,9 +28,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -44,12 +47,14 @@ import com.beakshield.borderColor
 import com.beakshield.cardColor
 import com.beakshield.composables.BasicBox
 import com.beakshield.composables.BasicRoundedBtn
+import com.beakshield.composables.MemoryMarkdown
 import com.beakshield.dangerColor
+import com.beakshield.classes.DataStyle
 import com.beakshield.memory.Memory
-import com.beakshield.memory.WingStyle
 import com.beakshield.textColor
 import com.beakshield.textSecondaryColor
 import com.beakshield.websocket.memory.MemoryDrawer
+import org.jetbrains.compose.resources.painterResource
 
 @Preview(device = TABLET)
 @Composable
@@ -65,7 +70,7 @@ fun DrawerDetailView(
     onDismiss: () -> Unit = {}
 ) {
     val padBetween = 12
-    val wingStyle = WingStyle.styleFor(drawer.wing)
+    val wingStyle = DataStyle.styleFor(drawer.wing)
 
     Box(
         modifier = Modifier
@@ -100,7 +105,7 @@ fun DrawerDetailView(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     LocationButton(
-                        label = WingStyle.displayName(drawer.wing).ifEmpty { "---" },
+                        label = DataStyle.displayName(drawer.wing).ifEmpty { "---" },
                         color = wingStyle.color,
                         enabled = drawer.wing.isNotEmpty(),
                         onClick = { onWingClick(drawer.wing) }
@@ -132,19 +137,13 @@ fun DrawerDetailView(
                         .background(backgroundColor.copy(alpha = 0.55f))
                         .border(1.dp, borderColor.copy(alpha = 0.65f), RoundedCornerShape(8.dp))
                 ) {
-                    SelectionContainer {
-                        Text(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                                .padding(12.dp),
-                            text = drawer.content.ifEmpty { "---" },
-                            color = textColor,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Normal,
-                            lineHeight = 19.sp
-                        )
-                    }
+                    MemoryMarkdown(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(12.dp),
+                        text = Memory.sanitizeMemoryContent(drawer.content.ifEmpty { "---" })
+                    )
                 }
 
                 deleteError?.let { error ->
@@ -188,26 +187,19 @@ fun DrawerDetailView(
 @Composable
 private fun DetailHeader(
     drawer: MemoryDrawer,
-    wingStyle: WingStyle.Style,
+    wingStyle: DataStyle.Style,
     onDismiss: () -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
+        Image(
             modifier = Modifier
-                .size(46.dp)
-                .background(wingStyle.color.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                .border(1.dp, wingStyle.color.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                modifier = Modifier.size(24.dp),
-                imageVector = wingStyle.icon,
-                contentDescription = null,
-                tint = wingStyle.color
-            )
-        }
+                .size(46.dp),
+            painter = painterResource(wingStyle.emblem),
+            contentDescription = null,
+            contentScale = ContentScale.Fit
+        )
         SelectionContainer(
             modifier = Modifier.weight(1f)
         ) {
@@ -310,6 +302,7 @@ private fun LocationButton(
 ) {
     Box(
         modifier = Modifier
+            .alpha(if (enabled) 1f else 0.6f)
             .clip(RoundedCornerShape(8.dp))
             .background(color.copy(alpha = 0.12f))
             .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(8.dp))

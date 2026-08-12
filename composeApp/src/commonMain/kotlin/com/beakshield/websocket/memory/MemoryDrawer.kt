@@ -82,8 +82,8 @@ data class MemoryDrawer(
             MemoryDrawer(
                 id = "drawer-001",
                 content = "USBManager Lifecycle Pattern\nLearned the connection lifecycle, error handling, and reconnection strategy for USBManager.",
-                wing = "AndroidDev",
-                room = "patterns",
+                wing = "dev",
+                room = "stuff",
                 addedBy = "Android Development Squirebot",
                 filedAt = "2026-08-04T22:25:00Z"
             ),

@@ -1,12 +1,12 @@
 package com.beakshield.viewModels
 
 import com.beakshield.BeakShieldApp.dawson
-import com.beakshield.classes.KnowledgeStatistics
+import com.beakshield.memory.KnowledgeStatistics
 import com.beakshield.formatBytes
 import com.beakshield.formatCount
+import com.beakshield.classes.DataStyle
 import com.beakshield.memory.Memory.MAX_SEARCH_QUERY_CHARS
 import com.beakshield.memory.Memory.MAX_SEARCH_RESULTS
-import com.beakshield.memory.WingStyle
 import com.beakshield.tablecells.DomainCellViewModel
 import com.beakshield.tablecells.KnowledgeCellViewModel
 import com.beakshield.tablecells.TopicCellViewModel
@@ -312,7 +312,7 @@ class KnowledgeScreenViewModel : VModel {
 
         val newCount = knowledgeCells.count { (it.drawer.filedAtTimestamp ?: 0L) >= weekAgoMillis }
         val largestDomain = wings?.wings?.firstOrNull()?.let {
-            "${WingStyle.displayName(it.name)} \u00B7 ${formatCount(it.count)}"
+            "${DataStyle.displayName(it.name)} \u00B7 ${formatCount(it.count)}"
         }
         val newThisWeek = when {
             knowledgeCells.isEmpty() -> "---"
@@ -546,6 +546,13 @@ class KnowledgeScreenViewModel : VModel {
 
     fun openWing(wing: String) {
         closeDrawerDetail()
+        if ((_selectedBrowseWing.value == wing) &&
+            (_selectedBrowseRoom.value == null) &&
+            (_memoryRooms.value != null)) {
+            // Already at this domain's topics view with rooms loaded
+            return
+        }
+
         clearSearch()
         _showAllDomains.value = false
         _selectedBrowseRoom.value = null
@@ -558,6 +565,13 @@ class KnowledgeScreenViewModel : VModel {
 
     fun openRoom(wing: String, room: String) {
         closeDrawerDetail()
+        if ((_selectedBrowseWing.value == wing) &&
+            (_selectedBrowseRoom.value == room) &&
+            _browseEntries.value.isNotEmpty()) {
+            // Already browsing this exact topic with data loaded
+            return
+        }
+
         clearSearch()
         _showAllDomains.value = false
         _selectedBrowseWing.value = wing

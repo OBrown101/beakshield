@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.backgroundColor
 import com.beakshield.borderColor
-import com.beakshield.classes.KnowledgeStatistics
+import com.beakshield.memory.KnowledgeStatistics
 import com.beakshield.composables.BasicBox
 import com.beakshield.dawsonGold
 import com.beakshield.formatCount

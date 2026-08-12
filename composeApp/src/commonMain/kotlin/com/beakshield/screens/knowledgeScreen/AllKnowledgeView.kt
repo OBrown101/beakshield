@@ -104,7 +104,7 @@ fun AllKnowledgeView(
             cellSpacing = padBetween,
             cellOnClick = { it.onSelect() }
         ) { cellModifier, cell ->
-            RecentKnowledgeTableCell(
+            KnowledgeTableCell(
                 modifier = cellModifier,
                 cellViewModel = cell
             )

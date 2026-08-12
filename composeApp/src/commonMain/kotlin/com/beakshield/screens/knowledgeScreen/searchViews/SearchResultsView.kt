@@ -1,5 +1,6 @@
 package com.beakshield.screens.knowledgeScreen.searchViews
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +46,7 @@ import com.beakshield.memory.Memory
 import com.beakshield.tablecells.KnowledgeCellViewModel
 import com.beakshield.textColor
 import com.beakshield.textSecondaryColor
+import org.jetbrains.compose.resources.painterResource
 
 @Preview(device = TABLET)
 @Composable
@@ -182,20 +185,13 @@ private fun SearchResultTableCell(
                 .padding(horizontal = 15.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            Image(
                 modifier = Modifier
-                    .size(46.dp)
-                    .background(wingStyle.color.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                    .border(1.dp, wingStyle.color.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    modifier = Modifier.size(24.dp),
-                    imageVector = wingStyle.icon,
-                    contentDescription = null,
-                    tint = wingStyle.color
-                )
-            }
+                    .size(46.dp),
+                painter = painterResource(wingStyle.emblem),
+                contentDescription = null,
+                contentScale = ContentScale.Fit
+            )
             Column(
                 modifier = Modifier
                     .weight(1f)

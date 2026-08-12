@@ -1,6 +1,6 @@
 package com.beakshield.tablecells
 
-import com.beakshield.memory.WingStyle
+import com.beakshield.classes.DataStyle
 import com.beakshield.websocket.memory.MemoryCount
 
 data class TopicCellViewModel(
@@ -10,18 +10,19 @@ data class TopicCellViewModel(
     val onSelect: () -> Unit = {}
 ) {
     val displayName: String
-        get() = WingStyle.displayName(room.name)
+        get() = DataStyle.displayName(room.name)
 
     val entryCount: Int
         get() = room.count
 
-    val topicStyle: WingStyle.Style
+    val topicStyle: DataStyle.Style
         get() {
-            val domainStyle = WingStyle.styleFor(wing)
-            val roomStyle = WingStyle.styleFor(room.name)
-            return WingStyle.Style(
+            val domainStyle = DataStyle.styleFor(wing)
+            val roomStyle = DataStyle.styleFor(room.name)
+            return DataStyle.Style(
                 icon = roomStyle.icon,
-                color = domainStyle.color
+                color = domainStyle.color,
+                emblem = roomStyle.emblem
             )
         }
 

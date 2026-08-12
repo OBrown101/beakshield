@@ -1,10 +1,7 @@
 package com.beakshield.screens.knowledgeScreen.topicViews
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,18 +21,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices.TABLET
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.beakshield.composables.BasicBox
 import com.beakshield.dawsonGold
 import com.beakshield.formatCount
-import com.beakshield.memory.WingStyle
+import com.beakshield.classes.DataStyle
+import com.beakshield.screens.knowledgeScreen.MemorySummaryCard
 import com.beakshield.tablecells.TopicCellViewModel
-import com.beakshield.textColor
 import com.beakshield.textSecondaryColor
 
 @Preview(device = TABLET)
@@ -61,7 +55,7 @@ fun TopicsView(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = WingStyle.displayName(wing),
+                    text = DataStyle.displayName(wing),
                     fontFamily = FontFamily.Serif,
                     color = dawsonGold,
                     fontSize = 19.sp,
@@ -106,68 +100,14 @@ fun TopicsView(
             verticalArrangement = Arrangement.spacedBy(padBetween.dp)
         ) {
             items(topicCellViewModels, key = { it.id }) { cellViewModel ->
-                TopicCard(
-                    cellViewModel = cellViewModel
+                MemorySummaryCard(
+                    style = cellViewModel.topicStyle,
+                    title = cellViewModel.displayName,
+                    value = formatCount(cellViewModel.entryCount),
+                    subtitle = "knowledge entries",
+                    onClick = { cellViewModel.onSelect() }
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun TopicCard(
-    modifier: Modifier = Modifier,
-    cellViewModel: TopicCellViewModel
-) {
-    val topicStyle = cellViewModel.topicStyle
-
-    BasicBox(
-        modifier = modifier
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { cellViewModel.onSelect() }
-                .padding(horizontal = 12.dp, vertical = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .background(topicStyle.color.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                    .border(1.dp, topicStyle.color.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    modifier = Modifier.size(24.dp),
-                    imageVector = topicStyle.icon,
-                    contentDescription = null,
-                    tint = topicStyle.color
-                )
-            }
-            Text(
-                modifier = Modifier.padding(top = 12.dp),
-                text = cellViewModel.displayName,
-                color = textColor,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Normal,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                modifier = Modifier.padding(top = 8.dp),
-                text = formatCount(cellViewModel.entryCount),
-                color = textColor,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "knowledge entries",
-                color = textSecondaryColor,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Normal
-            )
         }
     }
 }

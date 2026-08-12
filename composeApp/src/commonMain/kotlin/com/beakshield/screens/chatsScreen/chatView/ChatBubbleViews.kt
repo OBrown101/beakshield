@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Refresh
@@ -39,10 +38,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -51,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import com.beakshield.DatetimeHandler.formatTimestampAbbrev
 import com.beakshield.borderColor
 import com.beakshield.cardColor
+import com.beakshield.composables.MainMarkdown
 import com.beakshield.dangerColor
 import com.beakshield.dawson.Agent
 import com.beakshield.dawson.Message
@@ -61,19 +57,10 @@ import com.beakshield.dawson.Message.MsgType.TEXT_THINKING
 import com.beakshield.dawson.Message.MsgType.TOOL_CALL_NAME
 import com.beakshield.dawson.Message.MsgType.TOOL_CALL_RESULT
 import com.beakshield.dawsonGold
-import com.beakshield.dawsonNavy
 import com.beakshield.dawsonRed
-import com.beakshield.elevatedSurfaceColor
 import com.beakshield.lightGreenColor
 import com.beakshield.textPrimaryColor
 import com.beakshield.textSecondaryColor
-import com.mikepenz.markdown.compose.Markdown
-import com.mikepenz.markdown.compose.components.markdownComponents
-import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeBlock
-import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeFence
-import com.mikepenz.markdown.m3.markdownColor
-import com.mikepenz.markdown.m3.markdownTypography
-import kotlinx.coroutines.launch
 
 @Preview
 @Composable
@@ -259,93 +246,9 @@ private fun MessageSegment(
             CollapsibleBubbleContent(
                 enabled = ((text.length > 1800) && (text.lines().size > 12)) && !message.isStream
             ) {
-                Box {
-                    Markdown(
-                        modifier = Modifier.padding(end = 18.dp),
-                        content = text,
-                        components = markdownComponents(
-                            codeBlock = {
-                                MarkdownHighlightedCodeBlock(
-                                    content = it.content,
-                                    node = it.node,
-                                    showHeader = true
-                                )
-                            },
-                            codeFence = {
-                                MarkdownHighlightedCodeFence(
-                                    content = it.content,
-                                    node = it.node,
-                                    showHeader = true
-                                )
-                            }
-                        ),
-                        colors = markdownColor(
-                            text = textPrimaryColor,
-                            codeBackground = dawsonNavy,
-                            inlineCodeBackground = dawsonNavy,
-                            dividerColor = borderColor,
-                            tableBackground = elevatedSurfaceColor
-                        ),
-                        typography = markdownTypography(
-                            text = TextStyle(
-                                fontSize = 14.sp,
-                                lineHeight = 18.sp,
-                                color = textPrimaryColor,
-                                fontWeight = FontWeight.Normal
-                            ),
-                            code = TextStyle(
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 13.sp,
-                                lineHeight = 17.sp,
-                                color = textPrimaryColor
-                            ),
-                            inlineCode = TextStyle(
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 13.sp,
-                                lineHeight = 17.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = dawsonGold
-                            ),
-                            h1 = TextStyle(
-                                fontSize = 18.sp,
-                                lineHeight = 24.sp,
-                                color = textPrimaryColor,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            h2 = TextStyle(
-                                fontSize = 16.sp,
-                                lineHeight = 22.sp,
-                                color = textPrimaryColor,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            h3 = TextStyle(
-                                fontSize = 15.sp,
-                                lineHeight = 20.sp,
-                                color = textPrimaryColor,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            quote = TextStyle(
-                                fontSize = 14.sp,
-                                lineHeight = 18.sp,
-                                color = textSecondaryColor,
-                                fontStyle = FontStyle.Italic
-                            )
-                        )
-                    )
-                    Icon(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(13.dp)
-                            .clickable {
-                                scope.launch {
-                                    clipboardManager.setText(AnnotatedString(text))
-                                }
-                            },
-                        imageVector = Icons.Outlined.ContentCopy,
-                        contentDescription = "Copy",
-                        tint = textSecondaryColor
-                    )
-                }
+                MainMarkdown(
+                    text = text
+                )
             }
         }
     }

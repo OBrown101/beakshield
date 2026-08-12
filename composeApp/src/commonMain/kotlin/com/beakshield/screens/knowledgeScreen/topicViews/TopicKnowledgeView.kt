@@ -1,19 +1,12 @@
 package com.beakshield.screens.knowledgeScreen.topicViews
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
@@ -28,21 +21,19 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices.TABLET
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.borderColor
 import com.beakshield.cardColor
-import com.beakshield.composables.BasicBox
 import com.beakshield.composables.BasicRoundedBtn
 import com.beakshield.composables.TableView
 import com.beakshield.dawsonGold
 import com.beakshield.formatCount
-import com.beakshield.memory.WingStyle
+import com.beakshield.classes.DataStyle
+import com.beakshield.screens.knowledgeScreen.KnowledgeTableCell
 import com.beakshield.tablecells.KnowledgeCellViewModel
-import com.beakshield.textColor
 import com.beakshield.textSecondaryColor
 
 @Preview(device = TABLET)
@@ -73,7 +64,7 @@ fun TopicKnowledgeView(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "${WingStyle.displayName(wing)} \u203A ${WingStyle.displayName(room)}",
+                    text = "${DataStyle.displayName(wing)} \u203A ${DataStyle.displayName(room)}",
                     fontFamily = FontFamily.Serif,
                     color = dawsonGold,
                     fontSize = 19.sp,
@@ -151,7 +142,7 @@ private fun TopicKnowledgeTableView(
     TableView(
         modifier = modifier,
         cellViewModels = knowledgeCellViewModels,
-        cellHeight = { 95.dp },
+        cellHeight = { 70.dp },
         emptyTableText = "No entries in this topic yet.",
         emptyTableTextColor = textSecondaryColor,
         enableOnClick = true,
@@ -160,99 +151,10 @@ private fun TopicKnowledgeTableView(
         cellSpacing = 12,
         cellOnClick = { it.onSelect() }
     ) { cellModifier, cell ->
-        TopicKnowledgeTableCell(
+        KnowledgeTableCell(
             modifier = cellModifier,
-            cellViewModel = cell
+            cellViewModel = cell,
+            wingRoomChip = false
         )
-    }
-}
-
-@Composable
-private fun TopicKnowledgeTableCell(
-    modifier: Modifier = Modifier,
-    cellViewModel: KnowledgeCellViewModel
-) {
-    val drawer = cellViewModel.drawer
-    val wingStyle = cellViewModel.wingStyle
-
-    BasicBox(
-        modifier = modifier.fillMaxSize()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 15.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .background(wingStyle.color.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                    .border(1.dp, wingStyle.color.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    modifier = Modifier.size(24.dp),
-                    imageVector = wingStyle.icon,
-                    contentDescription = null,
-                    tint = wingStyle.color
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 15.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = drawer.title,
-                    color = textColor,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                drawer.body?.let { body ->
-                    Text(
-                        modifier = Modifier.padding(top = 4.dp),
-                        text = body,
-                        color = textSecondaryColor,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Normal,
-                        lineHeight = 15.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .fillMaxHeight()
-                    .background(borderColor.copy(alpha = 0.65f))
-            )
-            Column(
-                modifier = Modifier
-                    .width(220.dp)
-                    .padding(start = 15.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = drawer.addedBy.ifEmpty { "---" },
-                    color = textColor,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Normal,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    modifier = Modifier.padding(top = 3.dp),
-                    text = drawer.filedAtFormatted,
-                    color = textSecondaryColor,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Normal
-                )
-            }
-        }
     }
 }

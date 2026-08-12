@@ -25,6 +25,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.dawsonGold
+import com.beakshield.formatCount
+import com.beakshield.screens.knowledgeScreen.MemorySummaryCard
 import com.beakshield.tablecells.DomainCellViewModel
 import com.beakshield.textSecondaryColor
 
@@ -92,9 +94,13 @@ fun DomainsView(
             verticalArrangement = Arrangement.spacedBy(padBetween.dp)
         ) {
             domainCellViewModels.forEach { cellViewModel ->
-                DomainCard(
+                MemorySummaryCard(
                     modifier = Modifier.width(170.dp),
-                    cellViewModel = cellViewModel
+                    style = cellViewModel.wingStyle,
+                    title = cellViewModel.displayName,
+                    value = formatCount(cellViewModel.entryCount),
+                    subtitle = "entries",
+                    onClick = { cellViewModel.onSelect() }
                 )
             }
         }
