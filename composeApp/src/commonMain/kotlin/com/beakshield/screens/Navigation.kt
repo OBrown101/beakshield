@@ -146,6 +146,7 @@ fun AppNavHost(
                     Destination.MAIN -> MainScreen(
                         modifier = modifier,
                         mainScreenViewModel = mainScreenViewModel,
+                        systemScreenViewModel = systemScreenViewModel,
                         navToScreen = navToScreen
                     )
                     Destination.CHATS -> ChatsScreen(

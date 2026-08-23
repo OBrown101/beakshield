@@ -144,6 +144,7 @@ fun MainBase(
     content: @Composable (Modifier) -> Unit = {}
 ) {
     val railContent by curDestination.railContent.collectAsState()
+    val railFooterHeight = 95
     val defaultNavWidth = 210
     var navWidth by remember { mutableStateOf(defaultNavWidth) }
     val scrollState = rememberScrollState()
@@ -205,7 +206,8 @@ fun MainBase(
             ) {
                 Column(
                     modifier = Modifier
-                        .height(815.dp)
+                        .fillMaxHeight()
+                        .padding(bottom = railFooterHeight.dp)
                         .align(Alignment.TopStart)
                         .then(scrollModifier)
                 ) {
@@ -236,6 +238,7 @@ fun MainBase(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(railFooterHeight.dp)
                         .padding(horizontal = 1.dp)
                         .background(backgroundColor)
                         .align(Alignment.BottomCenter)
@@ -244,7 +247,9 @@ fun MainBase(
                         modifier = Modifier
                             .align(Alignment.Center)
                             .padding(vertical = 20.dp),
-                        text = "v${BuildInfo.VERSION}\n(${BuildInfo.BUILD})",
+                        text = "v${BuildInfo.VERSION}\n(${BuildInfo.BUILD})\n" +
+                                "© 2026 Owen Ethan Brown\n" +
+                                "Source available under FSL-1.1",
                         color = textColor.copy(alpha = 0.55f),
                         fontSize = 10.sp,
                         fontFamily = FontFamily.Serif,

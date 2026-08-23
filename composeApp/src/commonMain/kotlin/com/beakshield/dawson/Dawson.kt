@@ -148,7 +148,9 @@ class Dawson {
         if (connectTimerJob != null) return
         connectTimerJob = CoroutineScope(Dispatchers.Default).launch {
             while (isActive) {
-                if (connectionState.value.state != ServerConnState.ConnState.CONNECTED) {
+                if ((connectionState.value.state != ServerConnState.ConnState.CONNECTED) &&
+                    preferences.serverAddress.isNotEmpty() &&
+                    (preferences.serverPort != 0)) {
                     connect()
                 }
                 delay(1500)
@@ -204,13 +206,18 @@ class Dawson {
     }
 
     fun startPrimaryChat(): Chat? {
-        val userUUID = _currentUserUUID.value ?: return null
-        _activeChats.value.firstOrNull { (it.uuid == PRIMARY_CHAT_UUID) && (it.userUUID == userUUID) }?.let { return it }
+        val currentUserUUID = _currentUserUUID.value ?: return null
+        _activeChats.value.firstOrNull { (it.uuid == PRIMARY_CHAT_UUID) && (it.userUUID == currentUserUUID) }?.let { return it }
 
-        val newChat = Chat(PRIMARY_CHAT_UUID, userUUID, PRIMARY_AGENT_UUID)
+        val newChat = Chat(
+            uuid = PRIMARY_CHAT_UUID,
+            userUUID = currentUserUUID,
+            agentUUID = PRIMARY_AGENT_UUID,
+            updatedTimestamp = 0L
+        )
         val chatData = ChatData(
             chatUUID = PRIMARY_CHAT_UUID,
-            userUUID = userUUID,
+            userUUID = currentUserUUID,
             agentUUID = PRIMARY_AGENT_UUID,
             dataType = DataType.UPSERT_CHAT,
             payload = WebSocketClient.json.encodeToJsonElement(serializer<Chat>(), newChat)
@@ -221,15 +228,20 @@ class Dawson {
 
     @OptIn(ExperimentalUuidApi::class)
     fun startSquireChat(chatUUID: String = Uuid.random().toString()): Chat? {
-        val userUUID = _currentUserUUID.value ?: return null
-        val agentUUID = Uuid.random().toString()
-        if (_activeChats.value.any { it.userUUID == userUUID && it.agentUUID == agentUUID }) return null
+        val currentUserUUID = _currentUserUUID.value ?: return null
+        val newAgentUUID = Uuid.random().toString()
+        if (_activeChats.value.any { it.userUUID == currentUserUUID && it.agentUUID == newAgentUUID }) return null
 
-        val newChat = Chat(chatUUID, userUUID, agentUUID)
+        val newChat = Chat(
+            uuid = chatUUID,
+            userUUID = currentUserUUID,
+            agentUUID = newAgentUUID,
+            updatedTimestamp = 0L
+        )
         val chatData = ChatData(
             chatUUID = newChat.uuid,
-            userUUID = userUUID,
-            agentUUID = agentUUID,
+            userUUID = currentUserUUID,
+            agentUUID = newAgentUUID,
             dataType = DataType.UPSERT_CHAT,
             payload = WebSocketClient.json.encodeToJsonElement(serializer<Chat>(), newChat)
         )

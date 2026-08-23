@@ -36,6 +36,7 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatsScreenViewModel : VModel {
+    private val uiScope = CoroutineScope(Dispatchers.Main.immediate)
     private val scope = CoroutineScope(Dispatchers.Default)
 
     private val _railContent = MutableStateFlow<RailContent?>(null)
@@ -50,19 +51,19 @@ class ChatsScreenViewModel : VModel {
         combine(_chatUUIDSelected, dawson.activeChats, dawson.activeAgents) { chatUUID, chats, agents ->
             val agentUUID = chats.firstOrNull { it.uuid == chatUUID }?.agentUUID
             agents.firstOrNull { it.uuid == agentUUID }
-        }.stateIn(scope, SharingStarted.Eagerly, null)
+        }.stateIn(uiScope, SharingStarted.Eagerly, null)
 
     val currentTitle: StateFlow<String?> = combine(_chatUUIDSelected, dawson.activeChats) { chatUUID, chats ->
         chats.firstOrNull { it.uuid == chatUUID }
     }.flatMapLatest { chat ->
         chat?.info?.map { it.first } ?: flowOf(null)
-    }.stateIn(scope, SharingStarted.Eagerly, null)
+    }.stateIn(uiScope, SharingStarted.Eagerly, null)
 
     val currentSubtitle: StateFlow<String?> = combine(_chatUUIDSelected, dawson.activeChats) { chatUUID, chats ->
         chats.firstOrNull { it.uuid == chatUUID }
     }.flatMapLatest { chat ->
         chat?.info?.map { it.second } ?: flowOf(null)
-    }.stateIn(scope, SharingStarted.Eagerly, null)
+    }.stateIn(uiScope, SharingStarted.Eagerly, null)
 
     val groupedMessages: StateFlow<Map<String, List<Message>>> =
         allMessages.map { allMsgs ->
@@ -71,7 +72,7 @@ class ChatsScreenViewModel : VModel {
             }.mapValues { (_, segs) ->
                 segs.sortedBy { it.createdTimestamp }
             }
-        }.stateIn(scope, SharingStarted.Eagerly, emptyMap())
+        }.stateIn(uiScope, SharingStarted.Eagerly, emptyMap())
 
     private val _searchText = MutableStateFlow("")
 
@@ -80,12 +81,12 @@ class ChatsScreenViewModel : VModel {
             chats.firstOrNull { it.uuid == Dawson.PRIMARY_CHAT_UUID }?.let { chat ->
                 getChatCellViewModel(0, chat, selectedUUID)
             }
-        }.stateIn(scope, SharingStarted.Eagerly, null)
+        }.stateIn(uiScope, SharingStarted.Eagerly, null)
 
     val chatCellViewModels: StateFlow<List<ChatCellViewModel>> =
         combine(dawson.activeChats, _searchText, _chatUUIDSelected) { chats, searchText, selectedUUID ->
             buildChatCellViewModels(chats, searchText, selectedUUID)
-        }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+        }.stateIn(uiScope, SharingStarted.Eagerly, emptyList())
 
     init {
         setRailContent(width = 370) { modifier ->
@@ -141,8 +142,9 @@ class ChatsScreenViewModel : VModel {
             .filter { it.uuid != Dawson.PRIMARY_CHAT_UUID }
             .filter { chat ->
                 query.isBlank() ||
-                    chat.title.contains(query, ignoreCase = true) ||
-                    chat.subtitle.contains(query, ignoreCase = true)
+                chat.title.contains(query, ignoreCase = true) ||
+                chat.subtitle.contains(query, ignoreCase = true) ||
+                chat.messages.value.map { it.fullText }.any { it.contains(query, ignoreCase = true) }
             }
             .sortedByDescending { it.updatedTimestamp }
             .mapIndexed { index, chat ->

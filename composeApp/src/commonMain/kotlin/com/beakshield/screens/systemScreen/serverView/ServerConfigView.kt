@@ -54,8 +54,10 @@ import com.beakshield.composables.BasicInputField
 import com.beakshield.composables.BasicPasswordInputField
 import com.beakshield.composables.BasicRoundedBtn
 import com.beakshield.composables.BasicRoundedImageBtn
+import com.beakshield.dangerColor
 import com.beakshield.dawson.Server
 import com.beakshield.dawsonGold
+import com.beakshield.dawsonRed
 import com.beakshield.textColor
 import com.beakshield.textSecondaryColor
 import com.beakshield.websocket.ServerConnState
@@ -68,7 +70,8 @@ fun ServerConfigView(
     server: Server? = Server.MockServer.mockServers[0],
     connState: ServerConnState = ServerConnState(),
     onConnect: (Server) -> Unit = {},
-    onCancel: () -> Unit = {}
+    onKillServer: () -> Unit = {},
+    onCancel: () -> Unit = {},
 ) {
     var addressProvided by remember { mutableStateOf(server?.address ?: "") }
     var portProvided by remember { mutableStateOf(server?.port ?: 0) }
@@ -167,7 +170,8 @@ fun ServerConfigView(
                     modifier = Modifier
                         .align(Alignment.End),
                     onConnect = { connect() },
-                    onCancel = onCancel
+                    onCancel = onCancel,
+                    onKillServer = onKillServer
                 )
             }
         }
@@ -221,7 +225,8 @@ private fun HeaderBox(
 private fun Buttons(
     modifier: Modifier = Modifier,
     onConnect: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onKillServer: () -> Unit
 ) {
     val btnTextStyle = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -235,13 +240,12 @@ private fun Buttons(
     val btnRadius = 8
 
     Row(
-        modifier = modifier,
+        modifier = modifier.height(btnHeight.dp),
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
         BasicRoundedBtn(
             modifier = Modifier
-                .height(btnHeight.dp)
                 .width(80.dp),
             text = "Cancel",
             borderRadius = btnRadius,
@@ -252,9 +256,20 @@ private fun Buttons(
             onClick = onCancel
         )
         Spacer(modifier = Modifier.width(15.dp))
+        BasicRoundedBtn(
+            modifier = Modifier
+                .width(80.dp),
+            text = "Kill Server",
+            textStyle = btnTextStyle.copy(color = dangerColor),
+            color = dangerColor,
+            borderRadius = btnRadius,
+            borderColor = dangerColor,
+            bg = dawsonRed.copy(0.6f),
+            onClick = onKillServer
+        )
+        Spacer(modifier = Modifier.width(15.dp))
         BasicRoundedImageBtn(
             modifier = Modifier
-                .height(btnHeight.dp)
                 .width(100.dp),
             text = "Connect",
             borderRadius = btnRadius,

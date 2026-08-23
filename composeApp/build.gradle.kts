@@ -196,6 +196,17 @@ compose.desktop {
             macOS {
                 iconFile.set(project.file("src/jvmMain/resources/icon_beakshield.icns"))
                 bundleID = "com.beakshield.app"
+                signing {
+                    // Absent locally for contributors → unsigned build, still runs
+                    sign.set(providers.environmentVariable("MACOS_SIGN_IDENTITY").isPresent)
+                    identity.set(providers.environmentVariable("MACOS_SIGN_IDENTITY"))
+                }
+                notarization {
+                    appleID.set(providers.environmentVariable("NOTARY_APPLE_ID"))
+                    password.set(providers.environmentVariable("NOTARY_PASSWORD"))
+                    teamID.set(providers.environmentVariable("NOTARY_TEAM_ID"))
+                }
+                entitlementsFile.set(project.file("entitlements.plist"))
             }
             windows {
                 iconFile.set(project.file("src/jvmMain/resources/icon_beakshield.ico"))

@@ -23,6 +23,9 @@ data class Message(
     var updatedTimestamp: Long = Clock.System.now().toEpochMilliseconds()
 ) {
 
+    val fullText: String
+        get() = chunks.entries.sortedBy { it.key }.joinToString("") { it.value }
+
     constructor(messageData: MessageData) : this (
         uuid = messageData.uuid,
         dataUUID = messageData.runUUID,

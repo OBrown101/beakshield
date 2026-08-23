@@ -4,6 +4,7 @@ import com.beakshield.BeakShieldApp.dawson
 import com.beakshield.BeakShieldApp.preferences
 import com.beakshield.dawson.Provider
 import com.beakshield.dawson.Server
+import com.beakshield.server.LocalDawsonInstallController
 import com.beakshield.tablecells.ProviderCellViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class SystemScreenViewModel : VModel {
     private val scope = CoroutineScope(Dispatchers.Default)
@@ -34,6 +36,10 @@ class SystemScreenViewModel : VModel {
         }
             .stateIn(scope, SharingStarted.Lazily, emptyList())
 
+    val localInstallController = LocalDawsonInstallController()
+    private val _showAutoSetupView = MutableStateFlow(true)
+    val showAutoSetupView = _showAutoSetupView.asStateFlow()
+
     init {
         _currentServer.value = Server(
             address = preferences.serverAddress,
@@ -41,6 +47,20 @@ class SystemScreenViewModel : VModel {
             authKey = preferences.serverAuthToken,
             fingerprint = preferences.serverFingerprint
         )
+
+        scope.launch {
+            localInstallController.state.collect { state ->
+                if (state is LocalDawsonInstallController.InstallState.Success) {
+                    localInstallController.reset()
+                    saveConnectToServer(state.server)
+                    showAutoSetupView(false)
+                }
+            }
+        }
+    }
+
+    fun showAutoSetupView(show: Boolean = true) {
+        _showAutoSetupView.value = show
     }
 
     private fun getProviderCellViewModel(index: Int, provider: Provider): ProviderCellViewModel {
@@ -75,5 +95,20 @@ class SystemScreenViewModel : VModel {
         preferences.serverAuthToken = server.authKey
         preferences.serverFingerprint = server.fingerprint
         dawson.connect()
+    }
+
+    fun clearDisconnectServer() {
+        _currentServer.value = null
+        preferences.serverAddress = ""
+        preferences.serverPort = 0
+        preferences.serverAuthToken = ""
+        preferences.serverFingerprint = ""
+        dawson.disconnect()
+    }
+
+    fun killLocalServer() {
+        localInstallController.stopLocalServer(onStopped = {
+            clearDisconnectServer()
+        })
     }
 }

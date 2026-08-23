@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,11 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import beakshield.composeapp.generated.resources.Res
-import beakshield.composeapp.generated.resources.nav_btn_dawson
 import com.beakshield.cardColor
 import com.beakshield.composables.BasicRoundedIconBtn
-import com.beakshield.composables.BasicRoundedImageBtn
 import com.beakshield.dangerColor
 import com.beakshield.dawson.Server
 import com.beakshield.dawsonRed
@@ -47,8 +45,9 @@ fun ServerView(
     modifier: Modifier = Modifier,
     server: Server? = Server.MockServer.mockServers[0],
     connState: ServerConnState = ServerConnState(),
+    localServerAvailable: Boolean = true,
     onManage: () -> Unit = {},
-    onDisconnect: () -> Unit = {}
+    onSetUpLocal: () -> Unit = {}
 ) {
     val serverText = when (connState.state) {
         ServerConnState.ConnState.CONNECTED -> "Your kingdom is connected to DAWSON."
@@ -129,17 +128,32 @@ fun ServerView(
             value = server?.lastSyncTime?.toString() ?: "---",
             valueColor = connState.color
         )
-
         Spacer(Modifier.height(22.dp))
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(btnHeight.dp),
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.End
         ) {
+            if (localServerAvailable) {
+                BasicRoundedIconBtn(
+                    modifier = Modifier
+                        .width(150.dp),
+                    text = "Setup on Computer",
+                    textStyle = btnTextStyle,
+                    imageVector = Icons.Rounded.Bolt,
+                    imageHeight = 16,
+                    color = Color.White,
+                    borderRadius = btnRadius,
+                    borderColor = dangerColor.copy(alpha = 0.4f),
+                    bg = dawsonRed,
+                    onClick = onSetUpLocal
+                )
+                Spacer(Modifier.width(10.dp))
+            }
             BasicRoundedIconBtn(
-                modifier = Modifier.width(155.dp),
+                modifier = Modifier
+                    .width(150.dp),
                 text = "Manage Connection",
                 textStyle = btnTextStyle,
                 imageVector = Icons.Rounded.Settings,
@@ -149,20 +163,6 @@ fun ServerView(
                 borderColor = Color.White,
                 bg = cardColor,
                 onClick = onManage
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            BasicRoundedImageBtn(
-                modifier = Modifier.width(120.dp),
-                enabled = false,
-                text = "Disconnect",
-                textStyle = btnTextStyle.copy(color = dangerColor),
-                image = Res.drawable.nav_btn_dawson,
-                imageHeight = btnIconHeight,
-                color = dangerColor,
-                borderRadius = btnRadius,
-                borderColor = dangerColor,
-                bg = dawsonRed.copy(0.6f),
-                onClick = onDisconnect
             )
         }
     }

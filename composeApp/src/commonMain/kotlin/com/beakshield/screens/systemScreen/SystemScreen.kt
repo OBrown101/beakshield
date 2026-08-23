@@ -43,6 +43,7 @@ import com.beakshield.screens.systemScreen.serverView.ServerConfigView
 import com.beakshield.screens.systemScreen.serverView.ServerView
 import com.beakshield.textColor
 import com.beakshield.viewModels.SystemScreenViewModel
+import com.beakshield.websocket.ServerConnState
 
 
 @Composable
@@ -53,12 +54,18 @@ fun SystemScreen(
 ) {
     val currentServer = systemScreenViewModel.currentServer.collectAsState()
     val connectionState = dawson.connectionState.collectAsState()
+    val installState by systemScreenViewModel.localInstallController.state.collectAsState()
+    val isInstalled by systemScreenViewModel.localInstallController.isInstalled.collectAsState()
+    val showAutoSetupView by systemScreenViewModel.showAutoSetupView.collectAsState()
     val providers by dawson.activeProviders.collectAsState()
     val providerTypeSelected by systemScreenViewModel.providerTypeSelected.collectAsState()
     val providerCellViewModels by systemScreenViewModel.providerCellViewModels.collectAsState()
     var showPopup by remember { mutableStateOf(false) }
     var showServerConfig by remember { mutableStateOf(false) }
     val padBetween = 12
+
+    val localServerAvailable = ((connectionState.value.state == ServerConnState.ConnState.DISCONNECTED) &&
+            systemScreenViewModel.localInstallController.isAvailable && !isInstalled)
 
     LaunchedEffect(showServerConfig, providerTypeSelected) {
         showPopup = (showServerConfig || (providerTypeSelected != null))
@@ -89,10 +96,13 @@ fun SystemScreen(
                             .weight(1f),
                         server = currentServer.value,
                         connState = connectionState.value,
+                        localServerAvailable = localServerAvailable,
                         onManage = {
                             showServerConfig = true
                         },
-                        onDisconnect = { dawson.disconnect() }
+                        onSetUpLocal = {
+                            systemScreenViewModel.showAutoSetupView()
+                        }
                     )
                     ProvidersView(
                         modifier = Modifier.weight(1f),
@@ -117,6 +127,10 @@ fun SystemScreen(
                 server = currentServer.value,
                 connState = connectionState.value,
                 onConnect = { systemScreenViewModel.saveConnectToServer(it) },
+                onKillServer = {
+                    systemScreenViewModel.killLocalServer()
+                    showServerConfig = false
+                },
                 onCancel = {
                     showServerConfig = false
                 }
@@ -137,6 +151,22 @@ fun SystemScreen(
                     systemScreenViewModel.selectProvider(null)
                 }
             )
+            if (localServerAvailable && showAutoSetupView) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(0.35f))
+                        .pointerInput(Unit) {
+                            detectTapGestures(onTap = {
+                            })
+                        }
+                )
+                LocalServerSetupView(
+                    state = installState,
+                    onSetUp = { systemScreenViewModel.localInstallController.setUp() },
+                    onCancel = { systemScreenViewModel.showAutoSetupView(false) }
+                )
+            }
         }
     }
 }

@@ -10,14 +10,18 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.tooling.preview.Devices.TABLET
+import androidx.compose.ui.tooling.preview.Preview
+import com.beakshield.composables.ComingSoonView
 import com.beakshield.screens.Destination
 import com.beakshield.screens.baseScreen.HeaderScreen
 import com.beakshield.viewModels.DecreesScreenViewModel
 
+@Preview(device = TABLET)
 @Composable
 fun DecreesScreen(
     modifier: Modifier = Modifier,
-    decreesScreenViewModel: DecreesScreenViewModel,
+    decreesScreenViewModel: DecreesScreenViewModel = DecreesScreenViewModel(),
     navToScreen: (Destination) -> Unit = {}
 ) {
     val userInputFocusReq = remember { FocusRequester() }
@@ -36,6 +40,6 @@ fun DecreesScreen(
         subtitle = "The laws and standards that guide Dawson and the rest of your agents.",
         destination = Destination.DECREES
     ) {
-
+        ComingSoonView()
     }
 }

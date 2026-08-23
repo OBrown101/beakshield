@@ -400,7 +400,7 @@ fun ModelDropdown(
         modifier = modifier
     ) {
         val modelItems = providers.flatMap { provider ->
-            provider.preferredModels.sortedByDescending { it.id == provider.defaultModelID }
+            provider.preferredModels.ifEmpty { provider.availableModels }.sortedByDescending { it.id == provider.defaultModelID }
         }.map { model ->
             DropdownItem(
                 value = model,
