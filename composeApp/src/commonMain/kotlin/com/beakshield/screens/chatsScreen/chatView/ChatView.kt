@@ -29,8 +29,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.automirrored.outlined.VolumeOff
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -41,10 +44,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -73,6 +78,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.beakshield.BeakShieldApp.voice
 import com.beakshield.borderColor
 import com.beakshield.cardColor
 import com.beakshield.composables.SquareRoundedIconBtn
@@ -88,6 +94,7 @@ import com.beakshield.primaryColor
 import com.beakshield.screens.chatsScreen.PendingInputRequestSegment
 import com.beakshield.textPrimaryColor
 import com.beakshield.textSecondaryColor
+import com.beakshield.voice.VoiceModelHandler
 import com.beakshield.websocket.UserInputRequest
 import com.beakshield.websocket.UserInputResponse
 import kotlinx.coroutines.launch
@@ -107,7 +114,6 @@ fun ChatView(
     onRespondToRequest: (UserInputResponse) -> Unit,
     onDeleteDirectory: (String) -> Unit = {},
     onAttachClick: (String) -> Unit = {},
-    onMicClick: () -> Unit = {},
     onCancel: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -120,6 +126,12 @@ fun ChatView(
         .sumOf { message ->
             message.chunks.values.sumOf { it.length }
         }
+
+    val isListening by voice.isListening.collectAsState()
+    val voiceState by voice.modelState.collectAsState()
+    val speakResponses by voice.speakResponses.collectAsState()
+    var speakSeeded by remember(agent.uuid) { mutableStateOf(false) }
+    val isSpeaking by voice.isSpeaking.collectAsState()
 
     fun attachDirectory() {
         val trimmed = userInput.text.trim()
@@ -142,6 +154,19 @@ fun ChatView(
 
             userInput = TextFieldValue("")
         }
+    }
+
+    LaunchedEffect(messageScrollKey, groupedMessages.keys.size, speakResponses, agent.uuid) {
+        val latest = groupedMessages.values.flatten()
+            .filter { it.type == Message.MsgType.TEXT_RESPONSE && it.sourceUUID == agent.uuid }
+            .maxByOrNull { it.createdTimestamp } ?: return@LaunchedEffect
+
+        if (!speakSeeded || !speakResponses) {
+            voice.primeStream(latest.dataUUID, latest.fullText)
+            speakSeeded = true
+            return@LaunchedEffect
+        }
+        voice.speakStream(latest.dataUUID, latest.fullText, agent.type, complete = (latest.numChunks != null))
     }
 
     LaunchedEffect(listState) {
@@ -208,6 +233,7 @@ fun ChatView(
                     key = { (groupKey, _) -> groupKey }
                 ) { (_, messages) ->
                     ChatBubbleRow(
+                        agentType = agent.type,
                         state = agent.state,
                         isUser = (messages.firstOrNull()?.sourceUUID == userUUIDSelected),
                         messages = messages,
@@ -263,11 +289,20 @@ fun ChatView(
             directories = agent.directories,
             enabled = inputEnabled,
             awaitingResponse = agent.state.isAwaitingResponse,
+            isListening = isListening,
+            voiceReady = (voiceState == VoiceModelHandler.State.Ready),
+            speakEnabled = speakResponses,
+            onToggleSpeak = {
+                if (isSpeaking) {
+                    voice.stopSpeaking()
+                } else {
+                    voice.setSpeakResponses(!speakResponses)
+                }
+            },
             onRemoveDirectory = onDeleteDirectory,
             onAttachClick = {
                 attachDirectory()
             },
-            onMicClick = onMicClick,
             onSendClick = {
                 onSend()
             },
@@ -313,13 +348,22 @@ private fun UserInputBar(
     directories: List<String>,
     enabled: Boolean,
     awaitingResponse: Boolean,
+    isListening: Boolean,
+    voiceReady: Boolean,
+    speakEnabled: Boolean,
+    onToggleSpeak: () -> Unit,
     onRemoveDirectory: (String) -> Unit,
     onValueChange: (TextFieldValue) -> Unit,
     onAttachClick: () -> Unit,
-    onMicClick: () -> Unit,
     onSendClick: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
+    val currentValue by rememberUpdatedState(value)
+    val currentOnValueChange by rememberUpdatedState(onValueChange)
+    val currentOnToggleSpeak by rememberUpdatedState(onToggleSpeak)
+    val isSpeaking by voice.isSpeaking.collectAsState()
+
     val outerShape = RoundedCornerShape(24.dp)
     val inputShape = RoundedCornerShape(16.dp)
     val btnSize = 55
@@ -416,14 +460,59 @@ private fun UserInputBar(
                 btnSize = btnSize,
                 bgColor = cardColor,
                 borderColor = borderColor.copy(alpha = 0.85f),
-                enabled = false,    // TODO
-                onClick = onMicClick,
+                enabled = voiceReady
             ) {
                 Icon(
-                    modifier = Modifier.size(btnIconSize.dp),
-                    imageVector = Icons.Outlined.Mic,
+                    modifier = Modifier
+                        .size(btnIconSize.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    voice.startListening()
+                                    tryAwaitRelease()
+                                    scope.launch {
+                                        val text = voice.stopListening()
+                                        if (text.isNotEmpty()) {
+                                            val base = currentValue.text
+                                            val joined = if (base.isNotEmpty() && !base.last().isWhitespace()) "$base $text" else base + text
+                                            currentOnValueChange(
+                                                TextFieldValue(text = joined, selection = TextRange(joined.length))
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                        },
+                    imageVector = if (isListening) Icons.Filled.Mic else Icons.Outlined.Mic,
                     contentDescription = "Voice input",
-                    tint = textPrimaryColor
+                    tint = if (isListening) dawsonGold else textPrimaryColor
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            SquareRoundedIconBtn(
+                modifier = Modifier,
+                btnSize = btnSize,
+                bgColor = cardColor,
+                borderColor = borderColor.copy(alpha = 0.85f),
+                enabled = voiceReady
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures(onTap = {
+                                currentOnToggleSpeak()
+                            })
+                        },
+                    imageVector = when {
+                        (speakEnabled || isSpeaking) -> Icons.AutoMirrored.Filled.VolumeUp
+                        else -> Icons.AutoMirrored.Outlined.VolumeOff
+                    },
+                    contentDescription = "Voice response",
+                    tint = when {
+                        (isSpeaking) -> dawsonGold
+                        else -> textSecondaryColor
+                    }
                 )
             }
 

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -33,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beakshield.BeakShieldApp.dawson
+import com.beakshield.BeakShieldApp.voice
 import com.beakshield.composables.BasicBox
 import com.beakshield.dawsonGold
 import com.beakshield.screens.Destination
@@ -41,6 +43,7 @@ import com.beakshield.screens.systemScreen.providerViews.ProviderConfigView
 import com.beakshield.screens.systemScreen.providerViews.ProvidersView
 import com.beakshield.screens.systemScreen.serverView.ServerConfigView
 import com.beakshield.screens.systemScreen.serverView.ServerView
+import com.beakshield.screens.systemScreen.voiceView.VoiceView
 import com.beakshield.textColor
 import com.beakshield.viewModels.SystemScreenViewModel
 import com.beakshield.websocket.ServerConnState
@@ -60,6 +63,7 @@ fun SystemScreen(
     val providers by dawson.activeProviders.collectAsState()
     val providerTypeSelected by systemScreenViewModel.providerTypeSelected.collectAsState()
     val providerCellViewModels by systemScreenViewModel.providerCellViewModels.collectAsState()
+    val voiceModelState by voice.modelState.collectAsState()
     var showPopup by remember { mutableStateOf(false) }
     var showServerConfig by remember { mutableStateOf(false) }
     val padBetween = 12
@@ -88,6 +92,7 @@ fun SystemScreen(
             ) {
                 Row(
                     modifier = Modifier
+                        .weight(1f)
                         .padding(bottom = padBetween.dp)
                 ) {
                     ServerView(
@@ -108,6 +113,20 @@ fun SystemScreen(
                         modifier = Modifier.weight(1f),
                         providerCellViewModels = providerCellViewModels
                     )
+                }
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(bottom = padBetween.dp)
+                ) {
+                    VoiceView(
+                        modifier = Modifier
+                            .padding(end = padBetween.dp)
+                            .weight(1f),
+                        state = voiceModelState,
+                        onEnable = { systemScreenViewModel.enableVoice() }
+                    )
+                    Spacer(Modifier.weight(1f))   // fourth SystemBox goes here later
                 }
             }
             if (showPopup) {

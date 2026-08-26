@@ -25,6 +25,11 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        mavenLocal {
+            content {
+                includeGroup("com.k2fsa.sherpa.onnx")
+            }
+        }
     }
 }
 

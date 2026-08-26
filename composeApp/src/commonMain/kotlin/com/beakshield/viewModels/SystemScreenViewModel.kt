@@ -2,6 +2,7 @@ package com.beakshield.viewModels
 
 import com.beakshield.BeakShieldApp.dawson
 import com.beakshield.BeakShieldApp.preferences
+import com.beakshield.BeakShieldApp.voice
 import com.beakshield.dawson.Provider
 import com.beakshield.dawson.Server
 import com.beakshield.server.LocalDawsonInstallController
@@ -110,5 +111,9 @@ class SystemScreenViewModel : VModel {
         localInstallController.stopLocalServer(onStopped = {
             clearDisconnectServer()
         })
+    }
+
+    fun enableVoice() {
+        voice.startModelDownload()
     }
 }

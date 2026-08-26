@@ -1,24 +1,25 @@
 package com.beakshield
 
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.websocket.WebSockets
 import java.security.MessageDigest
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
 actual fun dawsonHttpClient(expectedCertFingerprint: String): HttpClient {
-    return HttpClient(CIO) {
+    val tm = pinnedTrustManager(expectedCertFingerprint)
+    val ssl = SSLContext.getInstance("TLS").apply { init(null, arrayOf(tm), null) }
+    return HttpClient(OkHttp) {
         engine {
-            https {
-                trustManager = pinnedTrustManager(expectedCertFingerprint)
+            config {
+                sslSocketFactory(ssl.socketFactory, tm)
+                hostnameVerifier { _, _ -> true }
             }
         }
-
-        install(WebSockets) {
-            maxFrameSize = 64_000
-        }
+        install(WebSockets)
     }
 }
 

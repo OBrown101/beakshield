@@ -29,7 +29,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -37,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -66,6 +64,7 @@ import com.beakshield.textSecondaryColor
 @Composable
 fun ChatBubbleRow(
     state: Agent.AgentState = Agent.AgentState.READY,
+    agentType: Agent.AgentType = Agent.AgentType.SQUIREBOT,
     isUser: Boolean = true,
     messages: List<Message> = listOf(Message.MockMessage.mockMessages[0]),
     onRetry: (String) -> Unit = {}
@@ -81,6 +80,7 @@ fun ChatBubbleRow(
             modifier = Modifier
                 .then(paddingModifier),
             isUser = isUser,
+            agentType = agentType,
             state = state,
             messages = messages,
             onRetry = onRetry
@@ -92,6 +92,7 @@ fun ChatBubbleRow(
 private fun ChatBubble(
     modifier: Modifier,
     isUser: Boolean,
+    agentType: Agent.AgentType,
     state: Agent.AgentState,
     messages: List<Message>,
     onRetry: (String) -> Unit
@@ -133,7 +134,8 @@ private fun ChatBubble(
                             Spacer(Modifier.height(8.dp))
                         }
                         MessageSegment(
-                            message = message
+                            message = message,
+                            agentType = agentType
                         )
                     }
                 }
@@ -184,10 +186,9 @@ private fun ChatBubble(
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun MessageSegment(
-    message: Message
+    message: Message,
+    agentType: Agent.AgentType
 ) {
-    val clipboardManager = LocalClipboardManager.current
-    val scope = rememberCoroutineScope()
     val fontSize = 14
     val lineHeight = 17
     val text = message.chunks.entries.sortedBy { it.key }.joinToString("") { it.value }
@@ -247,6 +248,7 @@ private fun MessageSegment(
                 enabled = ((text.length > 1800) && (text.lines().size > 12)) && !message.isStream
             ) {
                 MainMarkdown(
+                    agentType = agentType,
                     text = text
                 )
             }

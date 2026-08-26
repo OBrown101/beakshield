@@ -88,7 +88,6 @@ fun ChatsScreen(
                                 onAttachClick = {
                                     chatsScreenViewModel.addDirectories(it)
                                 },
-                                onMicClick = {},
                                 onCancel = {
                                     dawson.cancelAgentRun(agent.uuid)
                                 }

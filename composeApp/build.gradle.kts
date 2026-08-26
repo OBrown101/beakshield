@@ -96,6 +96,7 @@ kotlin {
             implementation("org.jetbrains.compose.material3.adaptive:adaptive:1.2.0")
             implementation("io.ktor:ktor-client-okhttp:3.4.2")
             implementation("com.russhwolf:multiplatform-settings-no-arg:1.3.0")
+            implementation("com.k2fsa.sherpa.onnx:sherpa-onnx:1.13.6")
         }
         commonMain {
             kotlin.srcDir(generateBuildInfo)
@@ -135,9 +136,12 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation("io.ktor:ktor-client-cio:3.4.2")
+            implementation("io.ktor:ktor-client-okhttp:3.4.2")
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation("com.russhwolf:multiplatform-settings-serialization:1.3.0")
+            implementation("com.k2fsa.sherpa.onnx:sherpa-onnx-jvm:1.13.6")
+            implementation("com.k2fsa.sherpa.onnx:sherpa-onnx-native-lib-osx-aarch64:1.13.6")
         }
         iosMain.dependencies {
             implementation("io.ktor:ktor-client-darwin:3.4.2")
@@ -206,6 +210,13 @@ compose.desktop {
                     password.set(providers.environmentVariable("NOTARY_PASSWORD"))
                     teamID.set(providers.environmentVariable("NOTARY_TEAM_ID"))
                 }
+                infoPlist {
+                    extraKeysRawXml = """
+                        <key>NSMicrophoneUsageDescription</key>
+                        <string>Beakshield needs microphone access to record and analyze audio.</string>
+                    """.trimIndent()
+                }
+
                 entitlementsFile.set(project.file("entitlements.plist"))
             }
             windows {

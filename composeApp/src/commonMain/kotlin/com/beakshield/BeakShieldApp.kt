@@ -11,6 +11,7 @@ import com.beakshield.viewModels.MainScreenViewModel
 import com.beakshield.viewModels.ProfileScreenViewModel
 import com.beakshield.viewModels.SkillsScreenViewModel
 import com.beakshield.viewModels.SystemScreenViewModel
+import com.beakshield.voice.VoiceHandler
 
 object BeakShieldApp {
 
@@ -24,6 +25,10 @@ object BeakShieldApp {
 
     val notifications: Notifications by lazy {
         Notifications()
+    }
+
+    val voice by lazy {
+        VoiceHandler()
     }
 
     val baseScreenViewModel by lazy {

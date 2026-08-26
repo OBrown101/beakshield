@@ -1,6 +1,7 @@
 package com.beakshield.dawson
 
 import com.beakshield.BeakShieldApp.preferences
+import com.beakshield.BeakShieldApp.voice
 import com.beakshield.websocket.AgentData
 import com.beakshield.websocket.ChatData
 import com.beakshield.websocket.ChatData.DataType
@@ -117,6 +118,7 @@ class Dawson {
             var prevConn = false
             connectionState.collect { state ->
                 if (!prevConn && (state.state == ServerConnState.ConnState.CONNECTED)) {
+                    voice.checkForModelUpdates()
                     fetchAll()
                     startSyncTimer()
                 }
