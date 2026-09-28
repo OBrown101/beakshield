@@ -58,8 +58,10 @@ class VoiceHandler {
 
     fun release() {
         stopSpeaking()
-        tts?.release(); tts = null
-        stt?.release(); stt = null
+        tts?.release()
+        tts = null
+        stt?.release()
+        stt = null
     }
 
     fun setSpeakResponses(enabled: Boolean) {
@@ -136,9 +138,12 @@ class VoiceHandler {
     }
 
     fun stopSpeaking() {
-        speechWorker?.cancel(); speechWorker = null
-        speechQueue.cancel(); speechQueue = Channel(Channel.UNLIMITED)
-        streamKey = null; streamCursor = 0
+        speechWorker?.cancel()
+        speechWorker = null
+        speechQueue.cancel()
+        speechQueue = Channel(Channel.UNLIMITED)
+        streamKey = null
+        streamCursor = 0
         playback.stop()
         _isSpeaking.value = false
     }
