@@ -284,10 +284,11 @@ fun ProfileView(
                         )
                     },
                     title = "Context Window",
-                    subtitle = if (agent?.model?.provider?.supportsContextWindow ?: false) {
-                        agent.contextWindow.formatWithSuffix().let { "$it tokens" }
-                    } else {
-                        "---"
+                    subtitle = when {
+                        (agent == null) -> "---"
+                        agent.model.provider.supportsContextWindow -> agent.contextWindow.formatWithSuffix().let { "$it tokens" }
+                        (agent.model.contextTokens != null) -> agent.model.contextTokens?.formatWithSuffix().let { "$it tokens (model)" }
+                        else -> "Provider-managed"
                     },
                     enabled = (agent != null) && (agent.model.provider.supportsContextWindow),
                     enableClick = false,    // TODO

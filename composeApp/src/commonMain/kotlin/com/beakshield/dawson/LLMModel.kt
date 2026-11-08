@@ -7,7 +7,8 @@ import kotlinx.serialization.Serializable
 data class LLMModel(
     val id: String,
     val name: String,
-    val provider: ProviderType
+    val provider: ProviderType,
+    val contextTokens: Int? = null
 ) {
 
     object MockLLMModel {
